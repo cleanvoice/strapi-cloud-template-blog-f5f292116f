@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_shared_link",
+  "info": {
+    "displayName": "link"
+  },
+  "options": {},
+  "attributes": {
+    "url": { "type": "string" },
+    "newTab": { "type": "boolean" },
+    "text": { "type": "string" }
+  }
+}
+
+

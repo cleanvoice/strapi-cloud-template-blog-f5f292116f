@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_sections_topic_generator",
+  "info": {
+    "displayName": "Topic Generator",
+    "description": "Component from v3: sections.topic-generator"
+  },
+  "options": {},
+  "attributes": {
+    "placeholder": {
+      "type": "string"
+    },
+    "searchText": {
+      "type": "string"
+    },
+    "descriptionText": {
+      "type": "string"
+    },
+    "loadingText": {
+      "type": "string"
+    }
+  }
+}

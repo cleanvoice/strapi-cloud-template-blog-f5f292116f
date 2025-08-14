@@ -1,0 +1,35 @@
+{
+  "collectionName": "components_sections_two_col_feature",
+  "info": {
+    "displayName": "Two Col Feature",
+    "description": "Component from v3: sections.two-col-feature"
+  },
+  "options": {},
+  "attributes": {
+    "Header": {
+      "type": "string"
+    },
+    "BodyText": {
+      "type": "string"
+    },
+    "side": {
+      "type": "boolean"
+    },
+    "LottiePath": {
+      "type": "string"
+    },
+    "VideoPath": {
+      "type": "string",
+      "required": false
+    },
+    "link": {
+      "type": "json"
+    },
+    "Media": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    }
+  }
+}

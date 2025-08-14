@@ -10,17 +10,37 @@
   "attributes": {
     "metaTitle": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "metaDescription": {
       "type": "text",
-      "required": true
+      "required": false
     },
     "shareImage": {
       "type": "media",
       "multiple": false,
       "required": false,
       "allowedTypes": ["images"]
+    },
+    "titleReversed": {
+      "type": "boolean",
+      "required": false
+    },
+    "preventIndexing": {
+      "type": "boolean",
+      "required": false
+    },
+    "twitterCardType": {
+      "type": "string",
+      "required": false
+    },
+    "twitterUsername": {
+      "type": "string",
+      "required": false
+    },
+    "allowIndexing": {
+      "type": "boolean",
+      "required": false
     }
   }
 }

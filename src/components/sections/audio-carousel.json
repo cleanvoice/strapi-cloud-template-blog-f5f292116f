@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_sections_audio_carousel",
+  "info": {
+    "displayName": "Audio Carousel",
+    "description": "Component from v3: sections.audio-carousel"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "SubTitle": {
+      "type": "string"
+    },
+    "audiocarouselTab": {
+      "type": "json"
+    }
+  }
+}

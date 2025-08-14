@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_sections_title_generator",
+  "info": {
+    "displayName": "Title Generator",
+    "description": "Component from v3: sections.title-generator"
+  },
+  "options": {},
+  "attributes": {
+    "placeholder": {
+      "type": "string"
+    },
+    "searchText": {
+      "type": "string"
+    },
+    "descriptionText": {
+      "type": "string"
+    },
+    "loadingText": {
+      "type": "string"
+    }
+  }
+}

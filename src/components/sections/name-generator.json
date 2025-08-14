@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_name_generator",
+  "info": {
+    "displayName": "Name Generator",
+    "description": "Component from v3: sections.name-generator"
+  },
+  "options": {},
+  "attributes": {
+    "searchText": {
+      "type": "string"
+    },
+    "placeholder": {
+      "type": "string"
+    }
+  }
+}

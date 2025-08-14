@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_sections_podcast_search",
+  "info": {
+    "displayName": "Podcast Search",
+    "description": "Component from v3: sections.podcast-search"
+  },
+  "options": {},
+  "attributes": {
+    "placeholderText": {
+      "type": "string"
+    },
+    "loadingText": {
+      "type": "string"
+    },
+    "errorText": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "searchText": {
+      "type": "string"
+    }
+  }
+}

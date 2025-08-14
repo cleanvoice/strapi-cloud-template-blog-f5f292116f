@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_cta",
+  "info": {
+    "displayName": "Cta",
+    "description": "Component from v3: sections.cta"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "Button": {
+      "type": "string"
+    }
+  }
+}

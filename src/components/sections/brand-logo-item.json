@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_sections_brand_logo_item",
+  "info": {
+    "displayName": "Brand Logo Item",
+    "description": "Single brand logo with media and optional URL"
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "Media": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "mediaUrl": {
+      "type": "string",
+      "required": false
+    },
+    "url": {
+      "type": "string",
+      "required": false
+    }
+  }
+}
+
+

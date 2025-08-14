@@ -1,0 +1,67 @@
+{
+  "kind": "singleType",
+  "collectionName": "cleanscore_report",
+  "info": {
+    "singularName": "cleanscorereport",
+    "pluralName": "cleanscore-report",
+    "displayName": "Cleanscorereport",
+    "description": "Generated from v3 cleanscore-report"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "fluency": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "flow": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "audio_quality": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "rank_text": {
+      "type": "dynamiczone",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "components": [
+        "scoring.grade-text",
+        "scoring.factors"
+      ]
+    },
+    "CTA": {
+      "type": "dynamiczone",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "components": [
+        "sections.two-col-feature"
+      ]
+    }
+  }
+}

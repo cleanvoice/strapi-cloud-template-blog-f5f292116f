@@ -1,0 +1,27 @@
+{
+  "collectionName": "components_sections_1_2_3_item",
+  "info": {
+    "displayName": "1 2 3 Item",
+    "description": "Single item for the 1-2-3 section (v3 compatible)"
+  },
+  "options": {},
+  "attributes": {
+    "Header": {
+      "type": "string"
+    },
+    "SubHeader": {
+      "type": "string"
+    },
+    "Number": {
+      "type": "string"
+    },
+    "Media": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    }
+  }
+}
+
+

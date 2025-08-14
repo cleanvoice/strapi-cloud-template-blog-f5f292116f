@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_mic_check",
+  "info": {
+    "displayName": "Mic Check",
+    "description": "Component from v3: sections.mic-check"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    }
+  }
+}

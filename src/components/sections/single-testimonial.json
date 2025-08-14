@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_sections_single_testimonial",
+  "info": {
+    "displayName": "Single Testimonial",
+    "description": "Component from v3: sections.single-testimonial"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "senja_url": {
+      "type": "string"
+    }
+  }
+}

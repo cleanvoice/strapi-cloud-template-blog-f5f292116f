@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_scoring_grade_text",
+  "info": {
+    "displayName": "Grade Text",
+    "description": "Component from v3: scoring.grade-text"
+  },
+  "options": {},
+  "attributes": {
+    "short_text_rank": {
+      "type": "string"
+    },
+    "description_text_rank": {
+      "type": "string"
+    },
+    "rank": {
+      "type": "string"
+    }
+  }
+}

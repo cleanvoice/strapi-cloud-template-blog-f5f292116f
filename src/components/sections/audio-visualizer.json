@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_audio_visualizer",
+  "info": {
+    "displayName": "Audio Visualizer",
+    "description": "Component from v3: sections.audio-visualizer"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    }
+  }
+}

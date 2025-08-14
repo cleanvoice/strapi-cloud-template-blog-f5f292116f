@@ -1,0 +1,38 @@
+{
+  "collectionName": "components_scoring_factors",
+  "info": {
+    "displayName": "Factors",
+    "description": "Component from v3: scoring.factors"
+  },
+  "options": {},
+  "attributes": {
+    "tree_points_text": {
+      "type": "string",
+      "required": false
+    },
+    "two_points_text": {
+      "type": "string"
+    },
+    "one_points_text": {
+      "type": "string"
+    },
+    "three_points_text": {
+      "type": "string"
+    },
+    "two_tip_title": {
+      "type": "string"
+    },
+    "one_tip_title": {
+      "type": "string"
+    },
+    "two_tip_description": {
+      "type": "text"
+    },
+    "one_tip_description": {
+      "type": "string"
+    },
+    "factor": {
+      "type": "string"
+    }
+  }
+}

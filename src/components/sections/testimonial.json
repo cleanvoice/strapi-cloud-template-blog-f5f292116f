@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_testimonial",
+  "info": {
+    "displayName": "Testimonial",
+    "description": "Component from v3: sections.testimonial"
+  },
+  "options": {},
+  "attributes": {
+    "data_id": {
+      "type": "string"
+    },
+    "Title": {
+      "type": "string"
+    }
+  }
+}

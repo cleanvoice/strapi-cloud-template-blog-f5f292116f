@@ -1,0 +1,37 @@
+{
+  "kind": "singleType",
+  "collectionName": "app_global",
+  "info": {
+    "singularName": "appglobal",
+    "pluralName": "appglobals",
+    "displayName": "Appglobal",
+    "description": "Generated from v3 app-global"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "language": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": false
+    },
+    "upload_h1": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    }
+  }
+}

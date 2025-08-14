@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_shared_footer",
+  "info": { "displayName": "footer" },
+  "options": {},
+  "attributes": {
+    "smallText": { "type": "text" },
+    "smallTextCopyright": { "type": "string" },
+    "columns": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.footer-column"
+    }
+  }
+}
+
+

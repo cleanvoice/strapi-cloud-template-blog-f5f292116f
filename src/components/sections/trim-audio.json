@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_trim_audio",
+  "info": {
+    "displayName": "Trim Audio",
+    "description": "Component from v3: sections.trim-audio"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    }
+  }
+}

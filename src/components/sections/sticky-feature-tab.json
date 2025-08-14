@@ -1,0 +1,39 @@
+{
+  "collectionName": "components_sections_sticky_feature_tab",
+  "info": {
+    "displayName": "Sticky Feature Tab",
+    "description": "Component from v3: sections.sticky-feature-tab"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "required": false
+    },
+    "CTA": {
+      "type": "string",
+      "required": false
+    },
+    "CTA_text": {
+      "type": "string",
+      "required": false
+    },
+    "icon_url": {
+      "type": "string",
+      "required": false
+    },
+    "icon_svg": {
+      "type": "string",
+      "required": false
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "sections": {
+      "type": "json"
+    }
+  }
+}

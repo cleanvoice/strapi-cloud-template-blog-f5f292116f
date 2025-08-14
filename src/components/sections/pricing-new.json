@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_sections_pricing_new",
+  "info": {
+    "displayName": "Pricing New",
+    "description": "Component from v3: sections.pricing-new"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "pricingOptions": {
+      "type": "json"
+    },
+    "customPlan": {
+      "type": "json"
+    }
+  }
+}

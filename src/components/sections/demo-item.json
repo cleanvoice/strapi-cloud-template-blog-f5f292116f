@@ -1,0 +1,33 @@
+{
+  "collectionName": "components_sections_demo_item",
+  "info": {
+    "displayName": "Demo Item",
+    "description": "Single demo item with fields like Label, Subtitle, DemoType, Icon, Title, and DemoData"
+  },
+  "options": {},
+  "attributes": {
+    "Label": {
+      "type": "string"
+    },
+    "Subtitle": {
+      "type": "string"
+    },
+    "DemoType": {
+      "type": "string"
+    },
+    "Icon": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images", "files", "videos"]
+    },
+    "Title": {
+      "type": "string"
+    },
+    "DemoData": {
+      "type": "json"
+    }
+  }
+}
+
+

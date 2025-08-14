@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_merge_audio",
+  "info": {
+    "displayName": "Merge Audio",
+    "description": "Component from v3: sections.merge-audio"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    }
+  }
+}

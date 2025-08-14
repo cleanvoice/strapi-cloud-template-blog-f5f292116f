@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_sections_big_image_cta",
+  "info": {
+    "displayName": "Big Image Cta",
+    "description": "Component from v3: sections.big-image-cta"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "buttonText": {
+      "type": "string"
+    },
+    "buttonLink": {
+      "type": "string"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    }
+  }
+}

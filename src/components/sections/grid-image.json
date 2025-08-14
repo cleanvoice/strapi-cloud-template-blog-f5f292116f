@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_sections_grid_image",
+  "info": {
+    "displayName": "Grid Image",
+    "description": "Component from v3: sections.grid-image"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "ImageGrid": {
+      "type": "component",
+      "repeatable": true,
+      "component": "sections.grid-image-item"
+    }
+  }
+}

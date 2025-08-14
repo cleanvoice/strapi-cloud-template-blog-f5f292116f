@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_faq",
+  "info": {
+    "displayName": "Faq",
+    "description": "Component from v3: sections.faq"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "FAQItem": {
+      "type": "json"
+    }
+  }
+}

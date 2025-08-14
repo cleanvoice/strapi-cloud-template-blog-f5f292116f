@@ -1,0 +1,54 @@
+{
+  "collectionName": "components_sections_big_video_cta",
+  "info": {
+    "displayName": "Big Video Cta",
+    "description": "Component from v3: sections.big-video-cta"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string",
+      "required": false
+    },
+    "cta": {
+      "type": "string",
+      "required": false
+    },
+    "cta_url": {
+      "type": "string",
+      "required": false
+    },
+    "url": {
+      "type": "string",
+      "required": false
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "buttonText": {
+      "type": "string"
+    },
+    "buttonLink": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "thumbnail_video_url": {
+      "type": "string"
+    },
+    "webm_url": {
+      "type": "string"
+    },
+    "mp4_url": {
+      "type": "string"
+    },
+    "issilent": {
+      "type": "string",
+      "required": false
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "collectionName": "components_sections_custom_plan_cta",
+  "info": {
+    "displayName": "Custom Plan Cta",
+    "description": "Component from v3: sections.custom-plan-cta"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "buttonText": {
+      "type": "string"
+    },
+    "buttonSubtext": {
+      "type": "string"
+    },
+    "buttonUrl": {
+      "type": "string"
+    },
+    "startingPrice": {
+      "type": "string"
+    },
+    "priceUnit": {
+      "type": "string"
+    },
+    "freeTrialText": {
+      "type": "string"
+    },
+    "freeTrialButtonText": {
+      "type": "string"
+    },
+    "freeTrialSubtext": {
+      "type": "string"
+    },
+    "enterpriseTitle": {
+      "type": "string"
+    },
+    "enterpriseButtonText": {
+      "type": "string"
+    },
+    "compareFeaturesText": {
+      "type": "string"
+    },
+    "compareFeaturesUrl": {
+      "type": "string"
+    },
+    "viewPricingText": {
+      "type": "string"
+    },
+    "viewPricingUrl": {
+      "type": "string"
+    },
+    "enterpriseButtonUrl": {
+      "type": "string"
+    }
+  }
+}

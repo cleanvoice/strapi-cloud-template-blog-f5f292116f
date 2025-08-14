@@ -1,0 +1,46 @@
+{
+  "kind": "collectionType",
+  "collectionName": "podcasts",
+  "info": {
+    "singularName": "podcast",
+    "pluralName": "podcasts",
+    "displayName": "Podcast",
+    "description": "Generated from v3 podcasts"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name": {
+      "type": "string",
+      "required": false
+    },
+    "podcast_id": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "title"
+    },
+    "episode_info": {
+      "type": "json"
+    },
+    "results_info": {
+      "type": "json"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "social_url": {
+      "type": "string"
+    },
+    "share_url": {
+      "type": "string",
+      "required": false
+    }
+  }
+}

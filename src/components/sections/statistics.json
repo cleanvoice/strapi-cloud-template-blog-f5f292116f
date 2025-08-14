@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_statistics",
+  "info": {
+    "displayName": "Statistics",
+    "description": "Component from v3: sections.statistics"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "statisticscard": {
+      "type": "json"
+    }
+  }
+}

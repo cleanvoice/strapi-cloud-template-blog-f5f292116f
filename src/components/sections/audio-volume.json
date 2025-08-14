@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_audio_volume",
+  "info": {
+    "displayName": "Audio Volume",
+    "description": "Component from v3: sections.audio-volume"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    }
+  }
+}

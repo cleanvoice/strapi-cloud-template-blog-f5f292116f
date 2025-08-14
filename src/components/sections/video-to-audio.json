@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_video_to_audio",
+  "info": {
+    "displayName": "Video To Audio",
+    "description": "Component from v3: sections.video-to-audio"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    }
+  }
+}

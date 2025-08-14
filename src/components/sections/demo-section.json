@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_sections_demo_section",
+  "info": {
+    "displayName": "Demo Section",
+    "description": "Component from v3: sections.demo-section"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": false
+    },
+    "ctaText": {
+      "type": "string"
+    },
+    "ctaLink": {
+      "type": "string"
+    },
+    "ctaSubtext": {
+      "type": "string"
+    },
+    "demo": {
+      "type": "component",
+      "repeatable": true,
+      "component": "sections.demo-item"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "collectionName": "components_sections_hero",
+  "info": {
+    "displayName": "Hero",
+    "description": "Component from v3: sections.hero"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "SubTitle": {
+      "type": "string"
+    },
+    "ButtonText": {
+      "type": "string"
+    },
+    "newSubTitle": {
+      "type": "string"
+    },
+    "freeTrialText": {
+      "type": "string"
+    },
+    "newTitle": {
+      "type": "string"
+    },
+    "ButtonUrl": {
+      "type": "string"
+    },
+    "senja_url": {
+      "type": "string"
+    },
+    "CTA_subtitle": {
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_sections_startup_cta",
+  "info": {
+    "displayName": "Startup Cta",
+    "description": "Component from v3: sections.startup-cta"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "badgeText": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "buttonText": {
+      "type": "string"
+    },
+    "buttonUrl": {
+      "type": "string"
+    }
+  }
+}

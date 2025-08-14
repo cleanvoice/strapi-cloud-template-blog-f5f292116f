@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_sections_brand_logos",
+  "info": {
+    "displayName": "Brand Logos",
+    "description": "Component from v3: sections.brand-logos"
+  },
+  "options": {},
+  "attributes": {
+    "brand": {
+      "type": "component",
+      "repeatable": true,
+      "component": "sections.brand-logo-item"
+    }
+  }
+}

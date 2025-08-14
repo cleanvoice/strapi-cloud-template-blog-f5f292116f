@@ -1,274 +1,764 @@
-'use strict';
+"use strict";
 
-const fs = require('fs-extra');
-const path = require('path');
-const mime = require('mime-types');
-const { categories, authors, articles, global, about } = require('../data/data.json');
-
-async function seedExampleApp() {
-  const shouldImportSeedData = await isFirstRun();
-
-  if (shouldImportSeedData) {
+// On startup, ensure the Features grid (title contains "Check out all our Features")
+// has 11 items populated. Uses mediaUrl so editors see items in the UI immediately.
+module.exports = async ({ strapi }) => {
+  // Disable all seeding/migration logic by default; enable explicitly via env in non-prod.
+  if (process.env.ENABLE_BOOTSTRAP_SEED !== 'true') {
+    return;
+  }
+  async function resolveMediaUrlMaybe(value) {
     try {
-      console.log('Setting up the template...');
-      await importSeedData();
-      console.log('Ready to go');
-    } catch (error) {
-      console.log('Could not import seed data');
-      console.error(error);
+      if (!value) return '';
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number') {
+        const f = await strapi.entityService.findOne('plugin::upload.file', value);
+        return (f && f.url) || '';
+      }
+      if (typeof value === 'object') {
+        if (typeof value.url === 'string') return value.url;
+        if (value.data && value.data.attributes && typeof value.data.attributes.url === 'string') {
+          return value.data.attributes.url;
+        }
+        if (value.formats) {
+          const candidates = ['url', 'large', 'medium', 'small', 'thumbnail'];
+          for (const key of candidates) {
+            const fmt = key === 'url' ? value : value.formats[key];
+            if (fmt && typeof fmt.url === 'string') return fmt.url;
+          }
+        }
+        if (typeof value.id === 'number') {
+          const f = await strapi.entityService.findOne('plugin::upload.file', value.id);
+          return (f && f.url) || '';
+        }
+        if (value.Media) {
+          return await resolveMediaUrlMaybe(value.Media);
+        }
+      }
+      return '';
+    } catch (_) {
+      return '';
     }
-  } else {
-    console.log(
-      'Seed data has already been imported. We cannot reimport unless you clear your database first.'
-    );
   }
-}
 
-async function isFirstRun() {
-  const pluginStore = strapi.store({
-    environment: strapi.config.environment,
-    type: 'type',
-    name: 'setup',
-  });
-  const initHasRun = await pluginStore.get({ key: 'initHasRun' });
-  await pluginStore.set({ key: 'initHasRun', value: true });
-  return !initHasRun;
-}
+  async function deepNormalizeMedia(obj) {
+    if (Array.isArray(obj)) {
+      const out = [];
+      for (const item of obj) out.push(await deepNormalizeMedia(item));
+      return out;
+    }
+    if (obj && typeof obj === 'object') {
+      const copy = { ...obj };
+      // If Media relation exists, verify it's valid; otherwise drop it and keep mediaUrl
+      if (copy.Media) {
+        try {
+          const mediaId = typeof copy.Media === 'number' ? copy.Media : (copy.Media && copy.Media.id);
+          if (mediaId) {
+            const file = await strapi.entityService.findOne('plugin::upload.file', mediaId);
+            if (!file || !file.id) {
+              const guessed = await resolveMediaUrlMaybe(copy.Media);
+              if (guessed && !copy.mediaUrl) copy.mediaUrl = guessed;
+              delete copy.Media;
+            }
+          } else {
+            const guessed = await resolveMediaUrlMaybe(copy.Media);
+            if (guessed && !copy.mediaUrl) copy.mediaUrl = guessed;
+            delete copy.Media;
+          }
+        } catch (_) {
+          const guessed = await resolveMediaUrlMaybe(copy.Media);
+          if (guessed && !copy.mediaUrl) copy.mediaUrl = guessed;
+          delete copy.Media;
+        }
+      }
+      if (copy.Media && !copy.mediaUrl) {
+        const url = await resolveMediaUrlMaybe(copy.Media);
+        if (url) copy.mediaUrl = url;
+      }
+      // If we have mediaUrl but not Media relation, try to attach the Upload file
+      if (!copy.Media && copy.mediaUrl && typeof copy.mediaUrl === 'string') {
+        try {
+          const files = await strapi.entityService.findMany('plugin::upload.file', { filters: { url: copy.mediaUrl }, limit: 1 });
+          if (files && files[0] && files[0].id) {
+            copy.Media = files[0].id;
+          } else {
+            const ensured = await ensureUploadForUrl(copy.mediaUrl);
+            if (ensured) copy.Media = ensured;
+          }
+        } catch (_) {}
+      }
+      // Also handle common media keys
+      for (const key of Object.keys(copy)) {
+        const val = copy[key];
+        if (key.toLowerCase() === 'media' && !copy.mediaUrl) {
+          const url = await resolveMediaUrlMaybe(val);
+          if (url) copy.mediaUrl = url;
+        } else if (key.toLowerCase().endsWith('media') && !copy[`${key}Url`]) {
+          const url = await resolveMediaUrlMaybe(val);
+          if (url) copy[`${key}Url`] = url;
+        } else if (key.toLowerCase().includes('image') && !copy[`${key}Url`]) {
+          const url = await resolveMediaUrlMaybe(val);
+          if (url) copy[`${key}Url`] = url;
+          // If relation field like 'image' is empty but we now have imageUrl, attach Upload file id
+          if (!val && copy[`${key}Url`]) {
+            try {
+              const files = await strapi.entityService.findMany('plugin::upload.file', { filters: { url: copy[`${key}Url`] }, limit: 1 });
+              if (files && files[0] && files[0].id) {
+                copy[key] = files[0].id;
+              } else {
+                const ensured = await ensureUploadForUrl(copy[`${key}Url`]);
+                if (ensured) copy[key] = ensured;
+              }
+            } catch (_) {}
+          }
+        } else if (typeof val === 'object') {
+          copy[key] = await deepNormalizeMedia(val);
+        }
+      }
+      return copy;
+    }
+    return obj;
+  }
 
-async function setPublicPermissions(newPermissions) {
-  // Find the ID of the public role
-  const publicRole = await strapi.query('plugin::users-permissions.role').findOne({
-    where: {
-      type: 'public',
-    },
-  });
+  // Find v3 SQLite DB in the parent folder to import legacy 1-2-3 items
+  function findV3DbPath() {
+    const fs = require('fs');
+    const path = require('path');
+    const candidates = [];
+    const parent = path.resolve(__dirname, '..', '..');
+    // Common locations
+    candidates.push(path.join(parent, '.tmp', 'data.db'));
+    // Known migration repo path (features seeding script used this)
+    candidates.push('/Users/edijs/Developer/strapi-migrate/strapi-cloud-template-blog-no-no/.tmp/data.db');
+    try {
+      const entries = fs.readdirSync(parent, { withFileTypes: true });
+      for (const e of entries) {
+        if (e.isDirectory()) {
+          candidates.push(path.join(parent, e.name, '.tmp', 'data.db'));
+        }
+      }
+    } catch (_) {}
+    for (const p of candidates) {
+      try {
+        const st = fs.statSync(p);
+        if (st && st.isFile() && st.size > 0) return p;
+      } catch (_) {}
+    }
+    return null;
+  }
 
-  // Create the new permissions and link them to the public role
-  const allPermissionsToCreate = [];
-  Object.keys(newPermissions).map((controller) => {
-    const actions = newPermissions[controller];
-    const permissionsToCreate = actions.map((action) => {
-      return strapi.query('plugin::users-permissions.permission').create({
-        data: {
-          action: `api::${controller}.${controller}.${action}`,
-          role: publicRole.id,
-        },
+  async function loadV3DemoSeed() {
+    const cp = require('child_process');
+    const db = findV3DbPath();
+    if (!db) return null;
+    try {
+      const tblRaw = cp.execSync(
+        `sqlite3 "${db}" "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'components%demo%section%';"`,
+        { encoding: 'utf8' }
+      );
+      const tableNames = String(tblRaw || '').split(/\n+/).filter(Boolean);
+      const candidates = tableNames.length ? tableNames : ['components_sections_demo_section'];
+      for (const table of candidates) {
+        try {
+          const colsRaw = cp.execSync(`sqlite3 "${db}" "PRAGMA table_info(${table});"`, { encoding: 'utf8' });
+          const colLines = String(colsRaw || '').split(/\n+/).filter(Boolean);
+          const colNames = colLines.map((l) => l.split('|')[1]).filter(Boolean);
+          const preferred = ['demo', 'Demo', 'demos', 'items', 'data', 'json', 'value', 'values', 'content'];
+          const scanCols = [...preferred.filter((c) => colNames.includes(c)), ...colNames];
+          for (const col of scanCols) {
+            try {
+              const valRaw = cp.execSync(
+                `sqlite3 "${db}" "SELECT \"${col}\" FROM ${table} WHERE \"${col}\" IS NOT NULL AND TRIM(\"${col}\") <> '' LIMIT 20;"`,
+                { encoding: 'utf8' }
+              );
+              const lines = String(valRaw || '').split(/\n+/).filter(Boolean);
+              for (const line of lines) {
+                try {
+                  const arr = JSON.parse(line);
+                  if (Array.isArray(arr) && arr.length) {
+                    return arr;
+                  }
+                } catch (_) {}
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  async function normalizeDemoIcon(iconLike) {
+    try {
+      if (!iconLike) return '';
+      if (typeof iconLike === 'string') return await resolveMediaUrlMaybe(iconLike);
+      if (typeof iconLike === 'number') {
+        const f = await strapi.entityService.findOne('plugin::upload.file', iconLike);
+        return (f && f.url) || '';
+      }
+      if (typeof iconLike === 'object') {
+        const url = await resolveMediaUrlMaybe(iconLike);
+        return url || '';
+      }
+      return '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  async function normalizeDemoItem(raw) {
+    const Title = (raw && (raw.Title || raw.title || raw.Label || raw.label || raw.name)) || '';
+    const Label = (raw && (raw.Label || raw.label || raw.Title || raw.title)) || Title || '';
+    const Subtitle = (raw && (raw.Subtitle || raw.subtitle || raw.Text || raw.text)) || '';
+    const DemoType = (raw && (raw.DemoType || raw.demoType || raw.type)) || '';
+    const DemoData = (raw && (raw.DemoData || raw.demoData || raw.data || raw.payload)) || null;
+    const Icon = await normalizeDemoIcon(raw && (raw.Icon || raw.icon));
+    return { Label, Subtitle, DemoType, DemoData, Icon, Title };
+  }
+
+  async function loadV3Seed123() {
+    const cp = require('child_process');
+    const db = findV3DbPath();
+    if (!db) return null;
+    try {
+      // Discover table and column dynamically
+      const tblRaw = cp.execSync(`sqlite3 "${db}" "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'components_sections%1%2%3%';"`, { encoding: 'utf8' });
+      const tableNames = String(tblRaw || '').split(/\n+/).filter(Boolean);
+      const candidates = tableNames.length ? tableNames : ['components_sections_1_2_3'];
+      for (const table of candidates) {
+        try {
+          const colsRaw = cp.execSync(`sqlite3 "${db}" "PRAGMA table_info(${table});"`, { encoding: 'utf8' });
+          const colLines = String(colsRaw || '').split(/\n+/).filter(Boolean);
+          const colNames = colLines.map((l) => l.split('|')[1]).filter(Boolean);
+          const preferred = ['items', 'Items', 'data', 'value', 'values', 'json', 'content'];
+          const scanCols = [...preferred.filter((c) => colNames.includes(c)), ...colNames];
+          for (const col of scanCols) {
+            try {
+              const valRaw = cp.execSync(`sqlite3 "${db}" "SELECT \"${col}\" FROM ${table} WHERE \"${col}\" IS NOT NULL AND TRIM(\"${col}\") <> '' LIMIT 20;"`, { encoding: 'utf8' });
+              const lines = String(valRaw || '').split(/\n+/).filter(Boolean);
+              for (const line of lines) {
+                try {
+                  const arr = JSON.parse(line);
+                  if (Array.isArray(arr) && arr.length) {
+                    const mapped = arr.map((it) => {
+                      const Title = (it && (it.Title || it.title || it.Text || it.text)) || '';
+                      const Text = (it && (it.Text || it.text || '')) || '';
+                      const media = it && (it.Media || it.media);
+                      const mediaUrl = (media && (media.url || (media.data && media.data.attributes && media.data.attributes.url))) || '';
+                      return { Title, Text, mediaUrl };
+                    }).filter((x) => x.Title);
+                    if (mapped.length) return mapped;
+                  }
+                } catch (_) {}
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function findUploadUrlByPrefix(prefix) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const dir = path.join(__dirname, '..', 'public', 'uploads');
+      const files = fs.readdirSync(dir).filter((f) => f.startsWith(prefix));
+      if (files && files[0]) return `/uploads/${files[0]}`;
+    } catch (_) {}
+    return '';
+  }
+
+  function listUploadUrls(limit = 6) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const dir = path.join(__dirname, '..', 'public', 'uploads');
+      const all = fs
+        .readdirSync(dir)
+        .filter((f) => /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(f))
+        .map((f) => `/uploads/${f}`);
+      return all.slice(0, limit);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  async function getDefault123Seed() {
+    const a = findUploadUrlByPrefix('1_') || '/uploads/1_568c4af47e.png';
+    const b = findUploadUrlByPrefix('2_') || '/uploads/2_9a6a23f535.png';
+    const c = findUploadUrlByPrefix('3_') || '/uploads/3_682635ee73.png';
+    return [
+      { Header: 'Drag and Drop Your Files', SubHeader: '', Number: '1', Media: a },
+      { Header: 'Sit Back and Let AI Do the Magic', SubHeader: '', Number: '2', Media: b },
+      { Header: 'Download Or Export Clean Files', SubHeader: '', Number: '3', Media: c },
+    ];
+  }
+
+  async function resolveUploadIdByUrl(possibleUrl) {
+    try {
+      if (!possibleUrl) return null;
+      const url = await resolveMediaUrlMaybe(possibleUrl);
+      if (!url) return null;
+      const files = await strapi.entityService.findMany('plugin::upload.file', { filters: { url }, limit: 1 });
+      const f = files && files[0];
+      if (f && f.id) return f.id;
+      // If no upload entry exists yet for this URL, try to create it from local disk
+      const createdId = await ensureUploadForUrl(url);
+      return createdId || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async function normalize123Item(raw, idx) {
+    const Header = raw.Header || raw.Title || raw.title || raw.name || '';
+    const SubHeader = raw.SubHeader || raw.Text || raw.text || raw.subtitle || '';
+    const Number = raw.Number || String((idx || 0) + 1);
+    let Media = raw.Media;
+    if (!Media) {
+      const candidate = raw.mediaUrl || raw.url || raw.image || raw.src || '';
+      const id = await resolveUploadIdByUrl(candidate);
+      Media = id || null;
+    } else if (typeof Media === 'number') {
+      try {
+        const f = await strapi.entityService.findOne('plugin::upload.file', Media);
+        if (!f || !f.id) {
+          const fallbackUrl = idx === 0 ? findUploadUrlByPrefix('1_') : idx === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+          const createdId = await ensureUploadForUrl(fallbackUrl);
+          Media = createdId || null;
+        }
+      } catch (_) {
+        const fallbackUrl = idx === 0 ? findUploadUrlByPrefix('1_') : idx === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+        const createdId = await ensureUploadForUrl(fallbackUrl);
+        Media = createdId || null;
+      }
+    } else if (typeof Media === 'string') {
+      const id = await resolveUploadIdByUrl(Media);
+      Media = id || null;
+    } else if (typeof Media === 'object' && Media.url) {
+      const id = await resolveUploadIdByUrl(Media.url);
+      Media = id || null;
+    }
+    return { Header, SubHeader, Number, ...(Media ? { Media } : {}) };
+  }
+
+  function isBad123Item(it) {
+    if (!it || typeof it !== 'object') return true;
+    const hasHeader = typeof it.Header === 'string' && it.Header.trim().length > 0;
+    const hasNumber = typeof it.Number === 'string' && it.Number.trim().length > 0;
+    const hasMedia = !!it.Media || typeof it.mediaUrl === 'string';
+    return !(hasHeader && hasNumber && hasMedia);
+  }
+
+  async function ensureUploadForUrl(url) {
+    try {
+      const resolved = await resolveMediaUrlMaybe(url);
+      if (!resolved) return null;
+      // If a file entry already exists for this URL, reuse it
+      const existing = await strapi.entityService.findMany('plugin::upload.file', { filters: { url: resolved }, limit: 1 });
+      if (existing && existing[0] && existing[0].id) return existing[0].id;
+      // Otherwise, create a new upload entry from disk (local provider)
+      const fs = require('fs');
+      const path = require('path');
+      const mime = require('mime-types');
+      const publicDir = path.join(__dirname, '..', 'public');
+      // Normalize leading slash and ensure we point inside public dir
+      const cleaned = String(resolved).replace(/^\/+/, ''); // drop leading '/'
+      const absPath = path.join(publicDir, cleaned);
+      const stat = fs.existsSync(absPath) ? fs.statSync(absPath) : null;
+      if (!stat || !stat.isFile()) return null;
+      const name = path.basename(absPath);
+      const type = mime.lookup(name) || 'application/octet-stream';
+      const size = stat.size;
+      const [created] = await strapi.plugin('upload').service('upload').upload({
+        data: { fileInfo: { name } },
+        files: { path: absPath, name, type, size },
       });
-    });
-    allPermissionsToCreate.push(...permissionsToCreate);
-  });
-  await Promise.all(allPermissionsToCreate);
-}
+      return created && created.id ? created.id : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
-function getFileSizeInBytes(filePath) {
-  const stats = fs.statSync(filePath);
-  const fileSizeInBytes = stats['size'];
-  return fileSizeInBytes;
-}
-
-function getFileData(fileName) {
-  const filePath = path.join('data', 'uploads', fileName);
-  // Parse the file metadata
-  const size = getFileSizeInBytes(filePath);
-  const ext = fileName.split('.').pop();
-  const mimeType = mime.lookup(ext || '') || '';
-
-  return {
-    filepath: filePath,
-    originalFileName: fileName,
-    size,
-    mimetype: mimeType,
-  };
-}
-
-async function uploadFile(file, name) {
-  return strapi
-    .plugin('upload')
-    .service('upload')
-    .upload({
-      files: file,
-      data: {
-        fileInfo: {
-          alternativeText: `An image uploaded to Strapi called ${name}`,
-          caption: name,
-          name,
-        },
-      },
-    });
-}
-
-// Create an entry and attach files if there are any
-async function createEntry({ model, entry }) {
   try {
-    // Actually create the entry in Strapi
-    await strapi.documents(`api::${model}.${model}`).create({
-      data: entry,
+    const items = [
+      { Text: "Filler Words Remover", mediaUrl: "/uploads/Filler_Words_Remover_f9f26ec736.png", Link: { url: "/filler-words", newTab: false, text: "Filler Words Remover" } },
+      { Text: "Background Noise Remover", mediaUrl: "/uploads/Background_Noise_Remover_971f7160ea.png", Link: { url: "/remove-background-noise", newTab: false, text: "Background Noise Remover" } },
+      { Text: "Studio Sound (Audio Enhancer)", mediaUrl: "/uploads/Audio_Enhancement_1_bb603a4d47.svg", Link: { url: "/audio-enhancer", newTab: false, text: "Studio Sound (Audio Enhancer)" } },
+      { Text: "Podcast Summary & Shownotes", mediaUrl: "/uploads/Podcast_Summary_and_Shownotes_737421cb99.png", Link: { url: "/podcast-summarization", newTab: false, text: "Podcast Summary & Shownotes" } },
+      { Text: "Silence Remover", mediaUrl: "/uploads/Silence_Remover_cbd215beb6.png", Link: { url: "/deadair-remover", newTab: false, text: "Silence Remover" } },
+      { Text: "Podcast Transcription", mediaUrl: "/uploads/Podcast_Transcription_2b70a20c99.png", Link: { url: "/podcast-transcript", newTab: false, text: "Podcast Transcription" } },
+      { Text: "Podcast Mixing", mediaUrl: "/uploads/Podcast_Mixing_6e5f3c983d.png", Link: { url: "/podcast-mixing", newTab: false, text: "Podcast Mixing" } },
+      { Text: "Breath Remover", mediaUrl: "/uploads/Breath_Remover_43836b99f8.png", Link: { url: "/breath-remover", newTab: false, text: "Breath Remover" } },
+      { Text: "Stutter Remover", mediaUrl: "/uploads/lip_smacking_1_2026b85545.png", Link: { url: "/stutter-remover", newTab: false, text: "Stutter Remover" } },
+      { Text: "Integrations", mediaUrl: "/uploads/Integrations_3bc985891f.png", Link: { url: "/integrations", newTab: false, text: "Integrations" } },
+      { Text: "Mouth Sound Remover", mediaUrl: "/uploads/Mouth_Sound_Remover_6210f0e0d8.png", Link: { url: "/mouth-sounds", newTab: false, text: "Mouth Sound Remover" } },
+    ];
+    const byText = Object.fromEntries(items.map((i) => [i.Text, i.Link]));
+
+    // Fix media issues on 'features' grid-image
+    const pages = await strapi.entityService.findMany('api::page.page', {
+      filters: { slug: 'features', locale: 'en' },
+      populate: { contentSections: { populate: '*' } },
     });
-  } catch (error) {
-    console.error({ model, entry, error });
-  }
-}
 
-async function checkFileExistsBeforeUpload(files) {
-  const existingFiles = [];
-  const uploadedFiles = [];
-  const filesCopy = [...files];
-
-  for (const fileName of filesCopy) {
-    // Check if the file already exists in Strapi
-    const fileWhereName = await strapi.query('plugin::upload.file').findOne({
-      where: {
-        name: fileName.replace(/\..*$/, ''),
-      },
-    });
-
-    if (fileWhereName) {
-      // File exists, don't upload it
-      existingFiles.push(fileWhereName);
-    } else {
-      // File doesn't exist, upload it
-      const fileData = getFileData(fileName);
-      const fileNameNoExtension = fileName.split('.').shift();
-      const [file] = await uploadFile(fileData, fileNameNoExtension);
-      uploadedFiles.push(file);
+    for (const page of pages) {
+      const sections = Array.isArray(page.contentSections) ? page.contentSections : [];
+      let changed = false;
+      const nextSections = [];
+      for (const sec of sections) {
+        if (sec.__component === 'sections.grid-image') {
+          const current = Array.isArray(sec.ImageGrid) ? sec.ImageGrid : (Array.isArray(sec.imageGrid) ? sec.imageGrid : []);
+          // If empty, seed all
+          if (!current || current.length === 0) {
+            const newItems = items.map((it) => ({ ...it }));
+            changed = true;
+            nextSections.push({ ...sec, ImageGrid: newItems, imageGrid: newItems });
+            continue;
+          }
+          // Otherwise, fill missing Link per item and attach Media by URL if possible
+          const patched = [];
+          for (const it of current) {
+            let next = it;
+            if (next && !next.Link && next.Text && byText[next.Text]) {
+              changed = true;
+              next = { ...next, Link: byText[next.Text] };
+            }
+            if (next && !next.Media && next.mediaUrl) {
+              const fileUrl = await resolveMediaUrlMaybe(next.mediaUrl);
+              if (fileUrl) {
+                const files = await strapi.entityService.findMany('plugin::upload.file', { filters: { url: fileUrl }, limit: 1 });
+                const f = files && files[0];
+                if (f && f.id) {
+                  changed = true;
+                  next = { ...next, Media: f.id };
+                }
+              }
+            }
+            patched.push(next);
+          }
+          nextSections.push({ ...sec, ImageGrid: patched, imageGrid: patched });
+        } else {
+          nextSections.push(sec);
+        }
+      }
+      const patch = { contentSections: changed ? nextSections : sections };
+      await strapi.entityService.update('api::page.page', page.id, { data: patch });
     }
+  } catch (e) {
+    strapi.log.warn(`Features grid seed skipped: ${e.message}`);
   }
-  const allFiles = [...existingFiles, ...uploadedFiles];
-  // If only one file then return only that file
-  return allFiles.length === 1 ? allFiles[0] : allFiles;
-}
 
-async function updateBlocks(blocks) {
-  const updatedBlocks = [];
-  for (const block of blocks) {
-    if (block.__component === 'shared.media') {
-      const uploadedFiles = await checkFileExistsBeforeUpload([block.file]);
-      // Copy the block to not mutate directly
-      const blockCopy = { ...block };
-      // Replace the file name on the block with the actual file
-      blockCopy.file = uploadedFiles;
-      updatedBlocks.push(blockCopy);
-    } else if (block.__component === 'shared.slider') {
-      // Get files already uploaded to Strapi or upload new files
-      const existingAndUploadedFiles = await checkFileExistsBeforeUpload(block.files);
-      // Copy the block to not mutate directly
-      const blockCopy = { ...block };
-      // Replace the file names on the block with the actual files
-      blockCopy.files = existingAndUploadedFiles;
-      // Push the updated block
-      updatedBlocks.push(blockCopy);
-    } else {
-      // Just push the block as is
-      updatedBlocks.push(block);
+  // Migrate 1-2-3 sections: convert JSON Items into repeatable component with mediaUrl fallback
+  try {
+    const v3Seed = await loadV3Seed123();
+    const defaultSeed = await getDefault123Seed();
+    const allPages = await strapi.entityService.findMany('api::page.page', {
+      populate: { contentSections: { populate: '*' } },
+      limit: 1000,
+    });
+    for (const page of allPages) {
+      const sections = Array.isArray(page.contentSections) ? page.contentSections : [];
+      let changed = false;
+      const nextSections = [];
+      for (const sec of sections) {
+        if (sec.__component === 'sections.1-2-3') {
+          const items = Array.isArray(sec.Items) ? sec.Items : [];
+          const looksMigrated = items.length > 0 && items.every((it) => typeof it === 'object' && (it.Media || it.mediaUrl || it.Header || it.SubHeader || it.Title || it.Text));
+          if (looksMigrated) {
+            const fixed = [];
+            for (let idx = 0; idx < items.length; idx++) {
+              const normalized = await normalize123Item(items[idx], idx);
+              if (!normalized.Media && idx < 3) {
+                const urlByIdx = idx === 0 ? findUploadUrlByPrefix('1_') : idx === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+                const id = await ensureUploadForUrl(urlByIdx);
+                if (id) normalized.Media = id;
+              }
+              fixed.push(normalized);
+            }
+            // If still bad, fallback to default seed with correct headers
+            const anyBad = fixed.some((it) => isBad123Item(it));
+            if (anyBad) {
+              const seeded = [];
+              const rawSeed = await getDefault123Seed();
+              for (let i = 0; i < rawSeed.length; i++) {
+                const it = await normalize123Item(rawSeed[i], i);
+                if (!it.Media) {
+                  const urlByIdx = i === 0 ? findUploadUrlByPrefix('1_') : i === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+                  const id = await ensureUploadForUrl(urlByIdx);
+                  if (id) it.Media = id;
+                }
+                seeded.push(it);
+              }
+              nextSections.push({ ...sec, Items: seeded });
+            } else {
+              nextSections.push({ ...sec, Items: fixed });
+            }
+            changed = true;
+            continue;
+          }
+          if (!items || items.length === 0) {
+            const seedRaw = (v3Seed && v3Seed.length >= 3) ? v3Seed.slice(0, 3) : defaultSeed;
+            const seed = [];
+            for (let i = 0; i < seedRaw.length; i++) {
+              const item = await normalize123Item(seedRaw[i], i);
+              if (!item.Media) {
+                const urlByIdx = i === 0 ? findUploadUrlByPrefix('1_') : i === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+                const id = await ensureUploadForUrl(urlByIdx);
+                if (id) item.Media = id;
+              }
+              seed.push(item);
+            }
+            nextSections.push({ ...sec, Items: seed });
+            changed = true;
+            continue;
+          }
+          const mapped = [];
+          for (let idx = 0; idx < items.length; idx++) {
+            const it = items[idx];
+            if (typeof it === 'string') {
+              mapped.push({ Header: it, SubHeader: '', Number: String(idx + 1) });
+            } else if (it && typeof it === 'object') {
+              const item = await normalize123Item(it, idx);
+              if (!item.Media && idx < 3) {
+                const urlByIdx = idx === 0 ? findUploadUrlByPrefix('1_') : idx === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+                const id = await ensureUploadForUrl(urlByIdx);
+                if (id) item.Media = id;
+              }
+              mapped.push(item);
+            } else {
+              mapped.push({ Header: '', SubHeader: '', Number: String(idx + 1) });
+            }
+          }
+          // If any mapped item is still missing header/media, fallback to default seed
+          if (mapped.some((it) => isBad123Item(it))) {
+            const seeded = [];
+            const rawSeed = await getDefault123Seed();
+            for (let i = 0; i < rawSeed.length; i++) {
+              const it = await normalize123Item(rawSeed[i], i);
+              if (!it.Media) {
+                const urlByIdx = i === 0 ? findUploadUrlByPrefix('1_') : i === 1 ? findUploadUrlByPrefix('2_') : findUploadUrlByPrefix('3_');
+                const id = await ensureUploadForUrl(urlByIdx);
+                if (id) it.Media = id;
+              }
+              seeded.push(it);
+            }
+            nextSections.push({ ...sec, Items: seeded });
+          } else {
+            nextSections.push({ ...sec, Items: mapped });
+          }
+          changed = true;
+          continue;
+        }
+        if (sec.__component === 'sections.brand-logos') {
+          const logos = Array.isArray(sec.brand) ? sec.brand : [];
+          if (!logos || logos.length === 0) {
+            const urls = listUploadUrls(8);
+            const seeded = urls.map((u) => ({ name: '', mediaUrl: u }));
+            nextSections.push({ ...sec, brand: seeded });
+            changed = true;
+            continue;
+          }
+          const mapped = [];
+          let needsChange = false;
+          for (const it of logos) {
+            if (typeof it === 'string') {
+              needsChange = true;
+              mapped.push({ name: '', mediaUrl: it });
+              continue;
+            }
+            if (it && typeof it === 'object') {
+              if (it.Media || it.mediaUrl) {
+                mapped.push(it);
+              } else {
+                needsChange = true;
+                const name = it.name || it.Title || '';
+                const mediaUrl = it.url || it.image || it.src || '';
+                const url = it.href || it.link || '';
+                mapped.push({ name, mediaUrl, ...(url ? { url } : {}) });
+              }
+              continue;
+            }
+            needsChange = true;
+            mapped.push({ name: '', mediaUrl: '' });
+          }
+          if (needsChange) {
+            nextSections.push({ ...sec, brand: mapped });
+            changed = true;
+            continue;
+          }
+        }
+        if (sec.__component === 'sections.bento-box') {
+          const bentoItems = Array.isArray(sec.bento) ? sec.bento : [];
+          if (!bentoItems || bentoItems.length === 0) {
+            const urls = listUploadUrls(6);
+            const seed = urls.slice(0, 4).map((u, i) => ({
+              Title: `Tile ${i + 1}`,
+              Content: '',
+              Subtitle: '',
+              mediaUrl: u,
+              ButtonText: '',
+              ButtonLink: '',
+              Size: '',
+              ImagePosition: '',
+            }));
+            nextSections.push({ ...sec, bento: seed });
+            changed = true;
+            continue;
+          }
+          const mapped = [];
+          let needsChange = false;
+          for (const it of bentoItems) {
+            if (typeof it === 'string') {
+              needsChange = true;
+              mapped.push({ Title: it, Content: '', Subtitle: '', mediaUrl: '' });
+              continue;
+            }
+            if (it && typeof it === 'object') {
+              if (it.Media || it.mediaUrl || it.Title || it.Subtitle || it.Content) {
+                mapped.push(it);
+              } else {
+                needsChange = true;
+                mapped.push({ Title: '', Content: '', Subtitle: '', mediaUrl: '' });
+              }
+              continue;
+            }
+            needsChange = true;
+            mapped.push({ Title: '', Content: '', Subtitle: '', mediaUrl: '' });
+          }
+          if (needsChange) {
+            nextSections.push({ ...sec, bento: mapped });
+            changed = true;
+            continue;
+          }
+        }
+        if (sec.__component === 'sections.big-image-cta') {
+          const hasImage = !!(sec.image && (typeof sec.image === 'number' || typeof sec.image === 'object' || typeof sec.image === 'string'));
+          if (!hasImage) {
+            const urls = listUploadUrls(1);
+            const imgUrl = urls[0] || findUploadUrlByPrefix('1_') || '';
+            const patch = { ...sec };
+            if (imgUrl) patch.image = imgUrl;
+            if (!patch.Title) patch.Title = 'Edit video or audio without the hassle';
+            if (!patch.subtitle) patch.subtitle = 'Fast, accurate and simple.';
+            if (!patch.buttonText) patch.buttonText = 'Upload for Free';
+            if (!patch.buttonLink) patch.buttonLink = 'https://app.cleanvoice.ai/beta';
+            nextSections.push(patch);
+            changed = true;
+            continue;
+          }
+        }
+        nextSections.push(sec);
+      }
+      if (changed) {
+        await strapi.entityService.update('api::page.page', page.id, { data: { contentSections: nextSections } });
+      }
     }
+  } catch (e) {
+    strapi.log.warn(`1-2-3 migration skipped: ${e.message}`);
   }
 
-  return updatedBlocks;
-}
-
-async function importArticles() {
-  for (const article of articles) {
-    const cover = await checkFileExistsBeforeUpload([`${article.slug}.jpg`]);
-    const updatedBlocks = await updateBlocks(article.blocks);
-
-    await createEntry({
-      model: 'article',
-      entry: {
-        ...article,
-        cover,
-        blocks: updatedBlocks,
-        // Make sure it's not a draft
-        publishedAt: Date.now(),
-      },
+  // Pass 2: recursively resolve any lingering Media IDs to URLs across all pages/sections
+  try {
+    const allPages2 = await strapi.entityService.findMany('api::page.page', {
+      populate: { contentSections: { populate: '*' } },
+      limit: 1000,
     });
+    for (const page of allPages2) {
+      const sections = Array.isArray(page.contentSections) ? page.contentSections : [];
+      const normalized = [];
+      for (const sec of sections) normalized.push(await deepNormalizeMedia(sec));
+      await strapi.entityService.update('api::page.page', page.id, { data: { contentSections: normalized } });
+    }
+  } catch (e) {
+    strapi.log.warn(`Deep media normalization skipped: ${e.message}`);
   }
-}
 
-async function importGlobal() {
-  const favicon = await checkFileExistsBeforeUpload(['favicon.png']);
-  const shareImage = await checkFileExistsBeforeUpload(['default-image.png']);
-  return createEntry({
-    model: 'global',
-    entry: {
-      ...global,
-      favicon,
-      // Make sure it's not a draft
-      publishedAt: Date.now(),
-      defaultSeo: {
-        ...global.defaultSeo,
-        shareImage,
-      },
-    },
-  });
-}
-
-async function importAbout() {
-  const updatedBlocks = await updateBlocks(about.blocks);
-
-  await createEntry({
-    model: 'about',
-    entry: {
-      ...about,
-      blocks: updatedBlocks,
-      // Make sure it's not a draft
-      publishedAt: Date.now(),
-    },
-  });
-}
-
-async function importCategories() {
-  for (const category of categories) {
-    await createEntry({ model: 'category', entry: category });
-  }
-}
-
-async function importAuthors() {
-  for (const author of authors) {
-    const avatar = await checkFileExistsBeforeUpload([author.avatar]);
-
-    await createEntry({
-      model: 'author',
-      entry: {
-        ...author,
-        avatar,
-      },
+  // Pass 3: Ensure Bento Box and Brand Logos have items seeded if still empty
+  try {
+    const pages = await strapi.entityService.findMany('api::page.page', {
+      populate: { contentSections: { populate: '*' } },
+      limit: 1000,
     });
+    for (const page of pages) {
+      const sections = Array.isArray(page.contentSections) ? page.contentSections : [];
+      let changed = false;
+      const nextSections = [];
+      for (const sec of sections) {
+        if (sec.__component === 'sections.bento-box') {
+          const items = Array.isArray(sec.bento) ? sec.bento : [];
+          if (!items || items.length === 0) {
+            const urls = listUploadUrls(6);
+            const seed = urls.slice(0, 4).map((u, i) => ({ Title: `Tile ${i + 1}`, Subtitle: '', mediaUrl: u }));
+            nextSections.push({ ...sec, bento: seed });
+            changed = true;
+            continue;
+          }
+        }
+        if (sec.__component === 'sections.brand-logos') {
+          const logos = Array.isArray(sec.brand) ? sec.brand : [];
+          if (!logos || logos.length === 0) {
+            const urls = listUploadUrls(8);
+            const seed = urls.map((u) => ({ name: '', mediaUrl: u }));
+            nextSections.push({ ...sec, brand: seed });
+            changed = true;
+            continue;
+          }
+        }
+        nextSections.push(sec);
+      }
+      if (changed) {
+        await strapi.entityService.update('api::page.page', page.id, { data: { contentSections: nextSections } });
+      }
+    }
+  } catch (e) {
+    strapi.log.warn(`Bento/Brand seed pass skipped: ${e.message}`);
   }
-}
 
-async function importSeedData() {
-  // Allow read of application content types
-  await setPublicPermissions({
-    article: ['find', 'findOne'],
-    category: ['find', 'findOne'],
-    author: ['find', 'findOne'],
-    global: ['find', 'findOne'],
-    about: ['find', 'findOne'],
-  });
-
-  // Create all entries
-  await importCategories();
-  await importAuthors();
-  await importArticles();
-  await importGlobal();
-  await importAbout();
-}
-
-async function main() {
-  const { createStrapi, compileStrapi } = require('@strapi/strapi');
-
-  const appContext = await compileStrapi();
-  const app = await createStrapi(appContext).load();
-
-  app.log.level = 'error';
-
-  await seedExampleApp();
-  await app.destroy();
-
-  process.exit(0);
-}
-
-
-module.exports = async () => {
-  await seedExampleApp();
+  // Pass 4: Ensure Demo Section has 3 proper demo items (Label, Subtitle, DemoType, DemoData, Icon, Title)
+  try {
+    const v3Seed = await loadV3DemoSeed();
+    const pages = await strapi.entityService.findMany('api::page.page', {
+      populate: { contentSections: { populate: '*' } },
+      limit: 1000,
+    });
+    for (const page of pages) {
+      const sections = Array.isArray(page.contentSections) ? page.contentSections : [];
+      let changed = false;
+      const nextSections = [];
+      for (const sec of sections) {
+        if (sec.__component === 'sections.demo-section') {
+          const existing = Array.isArray(sec.demo) ? sec.demo : [];
+          const normalized = [];
+          if (existing && existing.length) {
+            for (const it of existing) normalized.push(await normalizeDemoItem(it));
+          } else if (v3Seed && v3Seed.length) {
+            for (let i = 0; i < Math.min(3, v3Seed.length); i++) {
+              normalized.push(await normalizeDemoItem(v3Seed[i]));
+            }
+          } else {
+            const defaults = [
+              { Title: 'Background Noise', Label: 'Background Noise', Subtitle: '', DemoType: '', DemoData: null, Icon: '' },
+              { Title: 'Filler Words', Label: 'Filler Words', Subtitle: '', DemoType: '', DemoData: null, Icon: '' },
+              { Title: 'Transcription & Summary', Label: 'Transcription & Summary', Subtitle: '', DemoType: '', DemoData: null, Icon: '' },
+            ];
+            for (const it of defaults) normalized.push(await normalizeDemoItem(it));
+          }
+          // Always keep only 3 in the demo list
+          const finalThree = normalized.slice(0, 3);
+          nextSections.push({ ...sec, demo: finalThree });
+          changed = true;
+          continue;
+        }
+        nextSections.push(sec);
+      }
+      if (changed) {
+        await strapi.entityService.update('api::page.page', page.id, { data: { contentSections: nextSections } });
+      }
+    }
+  } catch (e) {
+    strapi.log.warn(`Demo section seed pass skipped: ${e.message}`);
+  }
 };

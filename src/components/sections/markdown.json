@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_sections_markdown",
+  "info": {
+    "displayName": "Markdown",
+    "description": "Component from v3: sections.markdown"
+  },
+  "options": {},
+  "attributes": {
+    "text": {
+      "type": "richtext"
+    },
+    "title": {
+      "type": "string"
+    }
+  }
+}

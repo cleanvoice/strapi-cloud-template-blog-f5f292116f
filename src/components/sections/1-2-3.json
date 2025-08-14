@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_sections_1_2_3",
+  "info": {
+    "displayName": "1 2 3",
+    "description": "Component from v3: sections.1-2-3"
+  },
+  "options": {},
+  "attributes": {
+    "Header": {
+      "type": "string"
+    },
+    "SubHeader": {
+      "type": "string"
+    },
+    "leveled": {
+      "type": "boolean",
+      "required": false
+    },
+    "Items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "sections.1-2-3-item"
+    }
+  }
+}

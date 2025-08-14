@@ -1,0 +1,30 @@
+{
+  "collectionName": "components_sections_grid_image_item",
+  "info": {
+    "displayName": "Grid Image Item",
+    "description": "Single feature tile with media, text and link (v3 compatible)"
+  },
+  "options": {},
+  "attributes": {
+    "Media": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": ["images"]
+    },
+    "mediaUrl": {
+      "type": "string",
+      "required": false
+    },
+    "Text": {
+      "type": "string"
+    },
+    "Link": {
+      "type": "component",
+      "repeatable": false,
+      "component": "shared.link"
+    }
+  }
+}
+
+

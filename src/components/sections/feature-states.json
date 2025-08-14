@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_sections_feature_states",
+  "info": {
+    "displayName": "Feature States",
+    "description": "Component from v3: sections.feature-states"
+  },
+  "options": {},
+  "attributes": {
+    "mainTitle": {
+      "type": "string"
+    },
+    "mainSubtitle": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "features": {
+      "type": "json"
+    },
+    "states": {
+      "type": "json"
+    }
+  }
+}
