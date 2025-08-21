@@ -4,7 +4,7 @@
 // has 11 items populated. Uses mediaUrl so editors see items in the UI immediately.
 module.exports = async ({ strapi }) => {
   // Disable all seeding/migration logic by default; enable explicitly via env in non-prod.
-  if (process.env.ENABLE_BOOTSTRAP_SEED !== 'true') {
+  if (process.env.ENABLE_BOOTSTRAP_SEED !== 'true' && process.env.IMPORT_V3_CONTENT !== 'true') {
     return;
   }
   async function resolveMediaUrlMaybe(value) {
@@ -760,5 +760,125 @@ module.exports = async ({ strapi }) => {
     }
   } catch (e) {
     strapi.log.warn(`Demo section seed pass skipped: ${e.message}`);
+  }
+  
+  // Import v3 content (categories, articles, podcast titles) if enabled
+  try {
+    if (process.env.IMPORT_V3_CONTENT === 'true') {
+      const axios = require('axios');
+      const baseUrl = process.env.V3_BASE_URL || 'https://content.cleanvoice.ai';
+      const v3Token = process.env.V3_API_TOKEN || '';
+      const headers = v3Token ? { Authorization: `Bearer ${v3Token}` } : {};
+
+      async function fetchAll(pathname) {
+        const url = `${baseUrl.replace(/\/$/, '')}/${pathname.replace(/^\//, '')}`;
+        const withLimit = url.includes('?') ? `${url}&_limit=-1` : `${url}?_limit=-1`;
+        const res = await axios.get(withLimit, { headers, validateStatus: () => true });
+        if (res.status >= 200 && res.status < 300) return Array.isArray(res.data) ? res.data : [];
+        strapi.log.warn(`v3 fetch failed ${withLimit} → ${res.status}`);
+        return [];
+      }
+
+      function getString(obj, keys, def = '') {
+        for (const k of keys) {
+          const v = obj && obj[k];
+          if (typeof v === 'string' && v.trim()) return v.trim();
+        }
+        return def;
+      }
+
+      // 1) Categories
+      try {
+        const existingCount = await strapi.entityService.count('api::category.category');
+        if (existingCount === 0) {
+          const v3CategoriesEndpoint = process.env.V3_ENDPOINT_CATEGORIES || 'categories';
+          const v3Categories = await fetchAll(v3CategoriesEndpoint);
+          for (const c of v3Categories) {
+            const name = getString(c, ['name', 'Name', 'title', 'Title']);
+            if (!name) continue;
+            // Avoid duplicates by name
+            const dup = await strapi.entityService.findMany('api::category.category', { filters: { name }, limit: 1 });
+            if (dup && dup[0]) continue;
+            await strapi.entityService.create('api::category.category', { data: { name } });
+          }
+          strapi.log.info(`Imported ${v3Categories.length} v3 categories`);
+        }
+      } catch (e) {
+        strapi.log.warn(`v3 categories import skipped: ${e.message}`);
+      }
+
+      // Build category name → id map
+      const allCats = await strapi.entityService.findMany('api::category.category', { fields: ['id', 'name'], limit: 1000 });
+      const catNameToId = {};
+      for (const c of allCats) catNameToId[String(c.name).trim().toLowerCase()] = c.id;
+
+      // 2) Articles
+      try {
+        const existingCount = await strapi.entityService.count('api::article.article');
+        if (existingCount === 0) {
+          const v3ArticlesEndpoint = process.env.V3_ENDPOINT_ARTICLES || 'articles';
+          const v3Articles = await fetchAll(v3ArticlesEndpoint);
+          let imported = 0;
+          for (const a of v3Articles) {
+            const title = getString(a, ['title', 'Title', 'name', 'Name']);
+            if (!title) continue;
+            const description = getString(a, ['description', 'Description', 'excerpt', 'Excerpt']);
+            const content = getString(a, ['content', 'Content', 'body', 'Body']);
+            const categoryLike = a.category || a.Category || null;
+            let categoryId = null;
+            if (categoryLike) {
+              if (typeof categoryLike === 'object') {
+                const catName = getString(categoryLike, ['name', 'Name', 'title', 'Title']);
+                if (catName) categoryId = catNameToId[catName.toLowerCase()] || null;
+              } else if (typeof categoryLike === 'string') {
+                categoryId = catNameToId[categoryLike.toLowerCase()] || null;
+              }
+            }
+            // Avoid duplicates by title
+            const dup = await strapi.entityService.findMany('api::article.article', { filters: { title }, limit: 1 });
+            if (dup && dup[0]) continue;
+            await strapi.entityService.create('api::article.article', {
+              data: {
+                title,
+                description,
+                content,
+                ...(categoryId ? { category: categoryId } : {}),
+                publishedAt: new Date().toISOString(),
+              },
+            });
+            imported++;
+          }
+          strapi.log.info(`Imported ${imported} v3 articles`);
+        }
+      } catch (e) {
+        strapi.log.warn(`v3 articles import skipped: ${e.message}`);
+      }
+
+      // 3) Podcast titles → api::podcast.podcast (Name)
+      try {
+        const existingCount = await strapi.entityService.count('api::podcast.podcast');
+        const v3PodTitlesEndpoint = process.env.V3_ENDPOINT_PODCAST_TITLES || 'podcast-titles';
+        const v3PodTitles = await fetchAll(v3PodTitlesEndpoint);
+        let imported = 0;
+        for (const p of v3PodTitles) {
+          const name = getString(p, ['title', 'Title', 'name', 'Name']);
+          if (!name) continue;
+          // Avoid duplicates by Name
+          const dup = await strapi.entityService.findMany('api::podcast.podcast', { filters: { Name: name }, limit: 1 });
+          if (dup && dup[0]) continue;
+          await strapi.entityService.create('api::podcast.podcast', { data: { Name: name } });
+          imported++;
+        }
+        if (imported > 0) {
+          strapi.log.info(`Imported ${imported} v3 podcast titles`);
+        } else if (existingCount > 0) {
+          strapi.log.info('Skipped podcast titles import: existing podcasts present');
+        }
+      } catch (e) {
+        strapi.log.warn(`v3 podcast titles import skipped: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    strapi.log.warn(`v3 content import wrapper failed: ${e.message}`);
   }
 };

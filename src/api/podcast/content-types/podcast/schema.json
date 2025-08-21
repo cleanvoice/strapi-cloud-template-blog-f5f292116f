@@ -24,7 +24,7 @@
     },
     "slug": {
       "type": "uid",
-      "targetField": "title"
+      "targetField": "Name"
     },
     "episode_info": {
       "type": "json"

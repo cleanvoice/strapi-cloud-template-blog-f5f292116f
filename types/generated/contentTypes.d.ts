@@ -862,7 +862,7 @@ export interface ApiPodcastPodcast extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     results_info: Schema.Attribute.JSON;
     share_url: Schema.Attribute.String;
-    slug: Schema.Attribute.UID<'title'>;
+    slug: Schema.Attribute.UID<'Name'>;
     social_url: Schema.Attribute.String;
     status: Schema.Attribute.String;
     task_id: Schema.Attribute.String;
