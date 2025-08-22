@@ -13,13 +13,16 @@
   "pluginOptions": {},
   "attributes": {
     "locale": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 10
     },
     "title": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 255
     },
     "description": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 500
     },
     "content": {
       "type": "richtext"
