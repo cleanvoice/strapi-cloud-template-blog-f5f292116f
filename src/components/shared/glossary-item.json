@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_shared_glossary_item",
+  "info": {
+    "displayName": "Glossary Item",
+    "description": "Item with Title, Description, Metadata"
+  },
+  "options": {},
+  "attributes": {
+    "Title": {
+      "type": "string"
+    },
+    "Description": {
+      "type": "text"
+    },
+    "Metadata": {
+      "type": "json"
+    }
+  }
+}
+
+

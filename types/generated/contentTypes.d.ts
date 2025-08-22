@@ -510,6 +510,12 @@ export interface ApiBlogglobalBlogglobal extends Struct.SingleTypeSchema {
       'oneToMany',
       'api::blogglobal.blogglobal'
     >;
+    metadata: Schema.Attribute.Component<'shared.seo', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     subTitle: Schema.Attribute.String &
       Schema.Attribute.SetPluginOptions<{
@@ -732,11 +738,23 @@ export interface ApiGlossaryGlossary extends Struct.SingleTypeSchema {
           localized: true;
         };
       }>;
+    Entries: Schema.Attribute.Component<'shared.glossary-item', true> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     locale: Schema.Attribute.String;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::glossary.glossary'
     >;
+    Metadata: Schema.Attribute.Component<'shared.seo', false> &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: true;
+        };
+      }>;
     publishedAt: Schema.Attribute.DateTime;
     Title: Schema.Attribute.String &
       Schema.Attribute.SetPluginOptions<{

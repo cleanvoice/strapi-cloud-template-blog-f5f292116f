@@ -31,6 +31,25 @@
           "localized": true
         }
       }
+    },
+    "Entries": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.glossary-item",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "Metadata": {
+      "type": "component",
+      "component": "shared.seo",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
     }
   }
 }

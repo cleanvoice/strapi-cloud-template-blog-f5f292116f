@@ -30,41 +30,76 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
       }
       // Demo section: normalize to frontend schema and ensure icon URL & stable id
       if (sec.__component === "sections.demo-section" && Array.isArray(sec.demo)) {
-        const demo = [];
+        let demo = [];
         let idx = 0;
-        for (const item of sec.demo) {
-          if (item && typeof item === "object") {
-            // Normalize base fields (support both cases)
-            const label = item.Label ?? item.label ?? item.Title ?? item.title ?? '';
-            const title = item.Title ?? item.title ?? label;
-            const subtitle = item.Subtitle ?? item.subtitle ?? item.Text ?? item.text ?? '';
-            const demoType = item.DemoType ?? item.demoType ?? '';
-            const demoData = item.DemoData ?? item.demoData ?? null;
-            let id = item.id ?? (this._slugify(label) || null);
-            if (!id) {
-              id = `demo-${idx + 1}`;
+
+        // If demo array is empty, provide default demo items
+        if (sec.demo.length === 0) {
+          demo = [
+            {
+              id: 'demo-1',
+              label: 'Background Noise',
+              title: 'Remove Background Noise',
+              subtitle: 'Eliminate traffic, pets, and ambient sounds from your recordings',
+              demoType: 'bg_noise',
+              demoData: null,
+              icon: { url: '/uploads/demo-bg-noise.svg' }
+            },
+            {
+              id: 'demo-2',
+              label: 'Filler Words',
+              title: 'Remove Filler Words',
+              subtitle: 'Automatically remove ums, ahs, and other filler sounds',
+              demoType: 'filler_words',
+              demoData: null,
+              icon: { url: '/uploads/demo-filler-words.svg' }
+            },
+            {
+              id: 'demo-3',
+              label: 'Long Pauses',
+              title: 'Remove Long Pauses',
+              subtitle: 'Shorten awkward silences and keep your content engaging',
+              demoType: 'deadair',
+              demoData: null,
+              icon: { url: '/uploads/demo-long-pauses.svg' }
             }
-            // Resolve icon to object with url
-            const sourceIcon = Object.prototype.hasOwnProperty.call(item, 'Icon') ? item.Icon : item.icon;
-            let iconUrl = '';
-            if (typeof sourceIcon === 'number') {
-              const f = await this._getUploadById(sourceIcon);
-              iconUrl = f?.url || '';
-            } else if (sourceIcon && typeof sourceIcon === 'object' && typeof sourceIcon.url === 'string') {
-              iconUrl = sourceIcon.url;
-            } else if (typeof sourceIcon === 'string') {
-              iconUrl = sourceIcon;
+          ];
+        } else {
+          for (const item of sec.demo) {
+            if (item && typeof item === "object") {
+              // Normalize base fields (support both cases)
+              const label = item.Label ?? item.label ?? item.Title ?? item.title ?? '';
+              const title = item.Title ?? item.title ?? label;
+              const subtitle = item.Subtitle ?? item.subtitle ?? item.Text ?? item.text ?? '';
+              const demoType = item.DemoType ?? item.demoType ?? '';
+              const demoData = item.DemoData ?? item.demoData ?? null;
+              let id = item.id ?? (this._slugify(label) || null);
+              if (!id) {
+                id = `demo-${idx + 1}`;
+              }
+              // Resolve icon to object with url
+              const sourceIcon = Object.prototype.hasOwnProperty.call(item, 'Icon') ? item.Icon : item.icon;
+              let iconUrl = '';
+              if (typeof sourceIcon === 'number') {
+                const f = await this._getUploadById(sourceIcon);
+                iconUrl = f?.url || '';
+              } else if (sourceIcon && typeof sourceIcon === 'object' && typeof sourceIcon.url === 'string') {
+                iconUrl = sourceIcon.url;
+              } else if (typeof sourceIcon === 'string') {
+                iconUrl = sourceIcon;
+              }
+              demo.push({ id, label, title, subtitle, demoType, demoData, icon: iconUrl ? { url: iconUrl } : undefined });
+              idx++;
+              continue;
             }
-            demo.push({ id, label, title, subtitle, demoType, demoData, icon: iconUrl ? { url: iconUrl } : undefined });
+            // Strings or other primitives -> coerce into minimal item
+            const label = String(item || '').trim();
+            const id = label ? this._slugify(label) : `demo-${idx + 1}`;
+            demo.push({ id, label, title: label, subtitle: '', demoType: '', demoData: null });
             idx++;
-            continue;
           }
-          // Strings or other primitives -> coerce into minimal item
-          const label = String(item || '').trim();
-          const id = label ? this._slugify(label) : `demo-${idx + 1}`;
-          demo.push({ id, label, title: label, subtitle: '', demoType: '', demoData: null });
-          idx++;
         }
+
         // Ensure exactly 3 items if possible
         const three = demo.slice(0, 3);
         const ctaText = sec.ctaText || 'Clean it for free';
@@ -332,7 +367,10 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
       });
     }
 
-    ctx.body = payload;
+    ctx.body = {
+      data: payload,
+      meta: {}
+    };
   },
 
   async findOne(ctx) {
@@ -405,7 +443,10 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
       },
     });
     if (!entity) {
-      ctx.body = null;
+      ctx.body = {
+        data: null,
+        meta: {}
+      };
       return null;
     }
     let resolvedSections = entity.contentSections ? await this._resolveMediaIds(entity.contentSections) : [];
@@ -420,7 +461,10 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
       localizations: entity.localizations || [],
       contentSections: resolvedSections ? this._flattenMediaFields(resolvedSections) : [],
     };
-    ctx.body = result;
+    ctx.body = {
+      data: result,
+      meta: {}
+    };
     return result;
   },
 }));

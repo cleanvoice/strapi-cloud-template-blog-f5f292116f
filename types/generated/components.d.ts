@@ -615,6 +615,19 @@ export interface SharedFooterColumn extends Struct.ComponentSchema {
   };
 }
 
+export interface SharedGlossaryItem extends Struct.ComponentSchema {
+  collectionName: 'components_shared_glossary_item';
+  info: {
+    description: 'Item with Title, Description, Metadata';
+    displayName: 'Glossary Item';
+  };
+  attributes: {
+    Description: Schema.Attribute.Text;
+    Metadata: Schema.Attribute.JSON;
+    Title: Schema.Attribute.String;
+  };
+}
+
 export interface SharedLink extends Struct.ComponentSchema {
   collectionName: 'components_shared_link';
   info: {
@@ -764,6 +777,7 @@ declare module '@strapi/strapi' {
       'sections.video-to-audio': SectionsVideoToAudio;
       'shared.footer': SharedFooter;
       'shared.footer-column': SharedFooterColumn;
+      'shared.glossary-item': SharedGlossaryItem;
       'shared.link': SharedLink;
       'shared.media': SharedMedia;
       'shared.navbar': SharedNavbar;

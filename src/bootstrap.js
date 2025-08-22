@@ -4,9 +4,11 @@
 // has 11 items populated. Uses mediaUrl so editors see items in the UI immediately.
 module.exports = async ({ strapi }) => {
   // Disable all seeding/migration logic by default; enable explicitly via env in non-prod.
-  if (process.env.ENABLE_BOOTSTRAP_SEED !== 'true' && process.env.IMPORT_V3_CONTENT !== 'true') {
+  if (process.env.ENABLE_BOOTSTRAP_SEED !== 'true') {
     return;
   }
+
+
   async function resolveMediaUrlMaybe(value) {
     try {
       if (!value) return '';
@@ -186,6 +188,56 @@ module.exports = async ({ strapi }) => {
       }
     } catch (_) {}
     return null;
+  }
+
+  // Attempt to read glossary entries directly from a local v3 SQLite database
+  async function loadV3GlossaryFromDb(limit = 1000) {
+    const cp = require('child_process');
+    const db = findV3DbPath();
+    if (!db) return [];
+    try {
+      const tblRaw = cp.execSync(
+        `sqlite3 "${db}" "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'components%glossary%';"`,
+        { encoding: 'utf8' }
+      );
+      const tableNames = String(tblRaw || '').split(/\n+/).filter(Boolean);
+      const candidates = tableNames.length ? tableNames : [];
+      const collected = [];
+      for (const table of candidates) {
+        try {
+          const colsRaw = cp.execSync(`sqlite3 "${db}" "PRAGMA table_info(${table});"`, { encoding: 'utf8' });
+          const colLines = String(colsRaw || '').split(/\n+/).filter(Boolean);
+          const colNames = colLines.map((l) => l.split('|')[1]).filter(Boolean);
+          const pick = (names) => names.find((n) => colNames.includes(n));
+          const nameCol = pick(['Title', 'title', 'Name', 'name', 'term', 'Term']) || colNames.find((c) => /title|name|term/i.test(c));
+          const descCol = pick(['Description', 'description', 'Text', 'text', 'content', 'Content', 'definition', 'Definition']) || colNames.find((c) => /desc|text|content|definition/i.test(c));
+          const metaCol = pick(['Metadata', 'metadata', 'meta', 'Meta']);
+          if (!nameCol) continue;
+          const selected = [nameCol, descCol, metaCol].filter(Boolean).map((c) => `"${c}"`).join(', ');
+          const sql = `SELECT ${selected} FROM ${table} LIMIT ${limit};`;
+          const rowsRaw = cp.execSync(`sqlite3 -json "${db}" "${sql}"`, { encoding: 'utf8' });
+          const rows = JSON.parse(rowsRaw || '[]');
+          for (const r of rows) {
+            const Title = String(r[nameCol] || '').trim();
+            if (!Title) continue;
+            const Description = descCol ? String(r[descCol] || '').trim() : '';
+            let Metadata = null;
+            if (metaCol && r[metaCol]) {
+              if (typeof r[metaCol] === 'string') {
+                try { Metadata = JSON.parse(r[metaCol]); } catch (_) { Metadata = null; }
+              } else if (typeof r[metaCol] === 'object') {
+                Metadata = r[metaCol];
+              }
+            }
+            collected.push({ Title, ...(Description ? { Description } : {}), ...(Metadata ? { Metadata } : {}) });
+          }
+          if (collected.length) break; // good enough
+        } catch (_) {}
+      }
+      return collected;
+    } catch (_) {
+      return [];
+    }
   }
 
   async function normalizeDemoIcon(iconLike) {
@@ -779,12 +831,170 @@ module.exports = async ({ strapi }) => {
         return [];
       }
 
+      async function fetchOne(pathname) {
+        const url = `${baseUrl.replace(/\/$/, '')}/${pathname.replace(/^\//, '')}`;
+        const res = await axios.get(url, { headers, validateStatus: () => true });
+        if (res.status >= 200 && res.status < 300) {
+          if (res.data && typeof res.data === 'object' && !Array.isArray(res.data)) return res.data;
+          if (Array.isArray(res.data) && res.data[0] && typeof res.data[0] === 'object') return res.data[0];
+          return null;
+        }
+        strapi.log.warn(`v3 fetchOne failed ${url} → ${res.status}`);
+        return null;
+      }
+
+      async function getAdminJwt() {
+        try {
+          if (process.env.V3_ADMIN_JWT) return process.env.V3_ADMIN_JWT;
+          const email = process.env.V3_ADMIN_EMAIL;
+          const password = process.env.V3_ADMIN_PASSWORD;
+          if (!email || !password) return null;
+          const url = `${baseUrl.replace(/\/$/, '')}/admin/login`;
+          const res = await axios.post(url, { email, password }, { validateStatus: () => true });
+          if (res.status >= 200 && res.status < 300 && res.data && res.data.jwt) return res.data.jwt;
+          strapi.log.warn(`v3 admin login failed ${res.status}`);
+          return null;
+        } catch (e) {
+          strapi.log.warn(`v3 admin login error: ${e.message}`);
+          return null;
+        }
+      }
+
+      async function fetchCM(pathname) {
+        const jwt = await getAdminJwt();
+        if (!jwt) return null;
+        const authHeaders = { Authorization: `Bearer ${jwt}` };
+        const url = `${baseUrl.replace(/\/$/, '')}/${pathname.replace(/^\//, '')}`;
+        const res = await axios.get(url, { headers: authHeaders, validateStatus: () => true });
+        if (res.status >= 200 && res.status < 300) return res.data || null;
+        return null;
+      }
+
       function getString(obj, keys, def = '') {
         for (const k of keys) {
           const v = obj && obj[k];
           if (typeof v === 'string' && v.trim()) return v.trim();
         }
         return def;
+      }
+
+      function getObject(obj, keys) {
+        for (const k of keys) {
+          const v = obj && obj[k];
+          if (v && typeof v === 'object' && !Array.isArray(v)) return v;
+        }
+        return null;
+      }
+
+      function getByPath(obj, dotPath) {
+        try {
+          if (!obj || !dotPath) return undefined;
+          const parts = String(dotPath).split('.').filter(Boolean);
+          let cur = obj;
+          for (const p of parts) {
+            cur = cur?.[p];
+            if (cur === undefined || cur === null) return undefined;
+          }
+          return cur;
+        } catch (_) {
+          return undefined;
+        }
+      }
+
+      function extractGlossaryEntries(source) {
+        try {
+          const titleKeys = ['Title', 'title', 'name', 'Name', 'term', 'Term', 'word', 'Word'];
+          const descKeys = ['Description', 'description', 'content', 'Content', 'text', 'Text', 'definition', 'Definition', 'meaning', 'Meaning', 'body', 'Body', 'desc', 'Desc'];
+
+          function pickFields(obj) {
+            if (!obj || typeof obj !== 'object') return null;
+            // Support nested holders like fields/attributes
+            const holders = [obj, obj.fields || null, obj.attributes || null, obj.data && obj.data.attributes ? obj.data.attributes : null];
+            let Title = '';
+            let Description = '';
+            let Metadata = null;
+            for (const h of holders) {
+              if (!h || typeof h !== 'object') continue;
+              if (!Title) Title = getString(h, titleKeys);
+              if (!Description) Description = getString(h, descKeys);
+              if (!Metadata) Metadata = getObject(h, ['Metadata', 'metadata', 'meta', 'Meta']);
+              if (!Metadata) {
+                const raw = h && (h.Metadata || h.metadata || h.meta || h.Meta);
+                if (typeof raw === 'string') {
+                  try { Metadata = JSON.parse(raw); } catch (_) { /* ignore */ }
+                }
+              }
+            }
+            if (!Title && !Description && !Metadata) return null;
+            const out = {};
+            if (Title) out.Title = Title;
+            if (Description) out.Description = Description;
+            if (Metadata) out.Metadata = Metadata;
+            return Object.keys(out).length ? out : null;
+          }
+
+          function isItemLike(obj) {
+            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+            const picked = pickFields(obj);
+            return !!picked;
+          }
+
+          const candidateArrays = [];
+          function walk(node) {
+            if (!node) return;
+            if (Array.isArray(node)) {
+              const objs = node.filter((x) => x && typeof x === 'object' && !Array.isArray(x));
+              if (objs.length) {
+                const likeCount = objs.reduce((acc, x) => acc + (isItemLike(x) ? 1 : 0), 0);
+                const ratio = likeCount / objs.length;
+                candidateArrays.push({ arr: objs, likeCount, total: objs.length, ratio });
+              }
+              return;
+            }
+            if (node && typeof node === 'object') {
+              for (const k of Object.keys(node)) walk(node[k]);
+            }
+          }
+
+          walk(source);
+          // Explicit common paths first
+          const directArrays = [];
+          const tryPaths = [
+            ['Glossary'],
+            ['glossary'],
+            ['data', 'attributes', 'Glossary'],
+            ['data', 'attributes', 'glossary'],
+            ['attributes', 'Glossary'],
+            ['attributes', 'glossary'],
+            ['fields', 'Glossary'],
+            ['fields', 'glossary']
+          ];
+          for (const path of tryPaths) {
+            let cur = source;
+            for (const seg of path) cur = cur && typeof cur === 'object' ? cur[seg] : undefined;
+            if (Array.isArray(cur) && cur.length) directArrays.push(cur);
+          }
+          for (const arr of directArrays) {
+            const objs = arr.filter((x) => x && typeof x === 'object' && !Array.isArray(x));
+            if (objs.length) {
+              const likeCount = objs.reduce((acc, x) => acc + (isItemLike(x) ? 1 : 0), 0);
+              const ratio = likeCount / objs.length;
+              candidateArrays.push({ arr: objs, likeCount, total: objs.length, ratio });
+            }
+          }
+          if (!candidateArrays.length) return [];
+          // Prefer the largest array with high ratio of item-like objects
+          candidateArrays.sort((a, b) => (b.ratio - a.ratio) || (b.total - a.total));
+          const picked = candidateArrays[0].arr;
+          const out = [];
+          for (const item of picked) {
+            const fields = pickFields(item);
+            if (fields && fields.Title) out.push(fields);
+          }
+          return out;
+        } catch (_) {
+          return [];
+        }
       }
 
       // 1) Categories
@@ -876,6 +1086,82 @@ module.exports = async ({ strapi }) => {
         }
       } catch (e) {
         strapi.log.warn(`v3 podcast titles import skipped: ${e.message}`);
+      }
+
+      // 4) Glossary (single type)
+      try {
+        const v3GlossaryEndpoint = process.env.V3_ENDPOINT_GLOSSARY || 'glossary';
+        let g = await fetchOne(v3GlossaryEndpoint);
+        // Try common alternative endpoints if empty
+        if (!g) g = await fetchOne(`${v3GlossaryEndpoint}?_limit=-1&_populate=*&_publicationState=preview`);
+        if (!g) g = await fetchOne('glossaries');
+        if (!g) g = await fetchOne('glossary?_limit=-1');
+        // As a last resort, try content-manager secured endpoints
+        if (!g) {
+          const cmCandidates = [
+            'content-manager/single-types/application::glossary.glossary',
+            'content-manager/single-types/glossary',
+            'content-manager/single-types?uid=application::glossary.glossary'
+          ];
+          for (const p of cmCandidates) {
+            try {
+              const data = await fetchCM(p);
+              if (data && typeof data === 'object') { g = data.data || data; break; }
+            } catch (_) {}
+          }
+        }
+        if (g && typeof g === 'object') {
+          const title = getString(g, ['Title', 'title', 'name', 'Name']);
+          const description = getString(g, ['Description', 'description', 'content', 'Content', 'body', 'Body']);
+          // Glossary-level metadata
+          let meta = getObject(g, ['Metadata', 'metadata', 'meta', 'Meta']);
+          if (!meta) {
+            const rawMeta = g && (g.Metadata || g.metadata || g.meta || g.Meta);
+            if (typeof rawMeta === 'string') {
+              try { meta = JSON.parse(rawMeta); } catch (_) { meta = null; }
+            }
+          }
+          // Glossary entries (repeatable component)
+          let entries;
+          const pathOverride = process.env.V3_GLOSSARY_ITEMS_PATH;
+          if (pathOverride) {
+            const val = getByPath(g, pathOverride);
+            if (Array.isArray(val)) entries = val;
+          }
+          if (!entries) entries = extractGlossaryEntries(g);
+          if (!entries || entries.length === 0) {
+            // Try DB fallback
+            const dbEntries = await loadV3GlossaryFromDb();
+            if (dbEntries && dbEntries.length) entries = dbEntries;
+          }
+          // Normalize entries to include keys expected by types
+          /** @type {{ Title: string; Description: string; Metadata: any }[]} */
+          const normalizedEntries = Array.isArray(entries)
+            ? entries.map((e) => ({ Title: String(e?.Title || '').trim(), Description: String(e?.Description || '').trim(), Metadata: (e && e.Metadata) ? e.Metadata : {} }))
+            : [];
+          const existing = await strapi.entityService.findMany('api::glossary.glossary', { populate: { Entries: true }, limit: 1 });
+          const data = {};
+          if (title) data.Title = title;
+          if (description) data.Description = description;
+          if (meta) data.Metadata = meta;
+          if (normalizedEntries && normalizedEntries.length) data.Entries = normalizedEntries;
+          // Seed SEO using Title/Description if empty
+          data.SEO = {
+            metaTitle: title || 'Glossary',
+            metaDescription: description || ''
+          };
+          if (existing && existing[0]) {
+            await strapi.entityService.update('api::glossary.glossary', existing[0].id, { data });
+            strapi.log.info('Updated glossary single type from v3');
+          } else {
+            await strapi.entityService.create('api::glossary.glossary', { data });
+            strapi.log.info('Created glossary single type from v3');
+          }
+        } else {
+          strapi.log.warn('v3 glossary not found or invalid response');
+        }
+      } catch (e) {
+        strapi.log.warn(`v3 glossary import skipped: ${e.message}`);
       }
     }
   } catch (e) {
