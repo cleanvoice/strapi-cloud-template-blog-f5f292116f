@@ -813,7 +813,206 @@ module.exports = async ({ strapi }) => {
   } catch (e) {
     strapi.log.warn(`Demo section seed pass skipped: ${e.message}`);
   }
-  
+
+  // 2) Articles from CSV - Always run this
+  try {
+    const existingCount = await strapi.entityService.count('api::article.article');
+    console.log(`📊 Articles existing count: ${existingCount}`);
+
+    // Force create articles for debugging
+    console.log('🚀 Creating articles from CSV file (forced)...');
+
+    try {
+
+      // Read CSV file
+      const fs = require('fs');
+      const path = require('path');
+      const csvPath = path.join(__dirname, '..', 'cleanvoice_complete_blog_cleaned.csv');
+
+      const csvContent = fs.readFileSync(csvPath, 'utf8');
+      const lines = csvContent.split('\n').filter(Boolean).slice(1); // Skip header
+
+      console.log(`📊 Found ${lines.length} articles in CSV`);
+
+      // Get admin user
+      const adminUsers = await strapi.entityService.findMany('admin::user', { limit: 1 });
+      const adminUser = adminUsers[0];
+      if (!adminUser) {
+        throw new Error('No admin user found');
+      }
+
+      console.log(`Using admin user ID: ${adminUser.id}`);
+
+      let createdCount = 0;
+      const now = new Date().toISOString();
+
+      for (const line of lines) {
+        // Handle CSV parsing with quoted fields that contain commas
+        const parts = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            parts.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        parts.push(current.trim());
+
+        // Clean up quoted values
+        const [title, slug, image] = parts.map(s => s.replace(/^"|"$/g, ''));
+
+        if (!title || !slug) continue;
+
+        try {
+          // Find or create image file if it exists
+          let imageId = null;
+          if (image && image.startsWith('/uploads/')) {
+            const filename = image.substring(9); // Remove '/uploads/' prefix
+
+            // Check if file already exists in media library
+            const existingFiles = await strapi.entityService.findMany('plugin::upload.file', {
+              filters: { name: filename },
+              limit: 1
+            });
+
+            if (existingFiles.length > 0) {
+              imageId = existingFiles[0].id;
+            } else {
+              // Try to find the actual file in the uploads directory
+              const fs = require('fs');
+              const path = require('path');
+              const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+              const filePath = path.join(uploadsDir, filename);
+
+              if (fs.existsSync(filePath)) {
+                // Read file and create media entry
+                const fileBuffer = fs.readFileSync(filePath);
+                const fileStats = fs.statSync(filePath);
+
+                const uploadedFile = await strapi.entityService.create('plugin::upload.file', {
+                  data: {
+                    name: filename,
+                    alternativeText: title,
+                    caption: '',
+                    width: null,
+                    height: null,
+                    formats: null,
+                    hash: '',
+                    ext: path.extname(filename),
+                    mime: 'image/' + path.extname(filename).substring(1),
+                    size: fileStats.size,
+                    url: image,
+                    provider: 'local',
+                    related: []
+                  }
+                });
+
+                imageId = uploadedFile.id;
+                console.log(`✅ Created image: ${filename} (ID: ${imageId})`);
+              } else {
+                console.log(`⚠️  Image file not found: ${filePath}`);
+              }
+            }
+          }
+
+          const articleData = {
+            document_id: `article-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            locale: 'en',
+            title: title,
+            slug: slug,
+            description: `Description for ${title}`,
+            content: `<p>Content for ${title}</p>`,
+            toc: false,
+            created_at: now,
+            updated_at: now,
+            published_at: now,
+            created_by_id: adminUser.id,
+            updated_by_id: adminUser.id,
+            ...(imageId ? { image: imageId } : {})
+          };
+
+          const article = await strapi.entityService.create('api::article.article', {
+            data: articleData
+          });
+
+          console.log(`✅ Created article: ${article.title} (ID: ${article.id})`);
+          createdCount++;
+
+        } catch (error) {
+          console.error(`❌ Error creating article "${title}":`, error.message);
+        }
+      }
+
+      // Verify final count
+      const finalArticles = await strapi.entityService.findMany('api::article.article', {
+        fields: ['id', 'title', 'slug'],
+        limit: 1000
+      });
+
+      console.log(`\n🎉 SUCCESS: Created ${createdCount} articles total`);
+      console.log(`📊 Verification: Found ${finalArticles.length} articles in Strapi content manager`);
+
+      strapi.log.info(`Created ${createdCount} articles from CSV`);
+    } catch (e) {
+      strapi.log.warn(`Articles creation skipped: ${e.message}`);
+    }
+  } catch (e) {
+    strapi.log.warn(`Articles section skipped: ${e.message}`);
+  }
+
+  // 3) Update articles with content from v3 SQL dump
+  try {
+    console.log('🚀 Starting article content update from SQL dump...');
+
+    // Import the update function
+    const updateArticlesFromSQL = require('../scripts/update-articles-from-sql.js');
+
+    // Run the update
+    await updateArticlesFromSQL({ strapi });
+
+    console.log('✅ Article content update completed');
+  } catch (e) {
+    strapi.log.warn(`Article content update skipped: ${e.message}`);
+  }
+
+  // 4) Fix escaped content in articles
+  try {
+    console.log('🔧 Starting article content fix...');
+
+    // Import the fix function
+    const fixArticleContent = require('../scripts/fix-article-content.js');
+
+    // Run the fix
+    await fixArticleContent({ strapi });
+
+    console.log('✅ Article content fix completed');
+  } catch (e) {
+    strapi.log.warn(`Article content fix skipped: ${e.message}`);
+  }
+
+  // 5) Check article content to verify import
+  try {
+    console.log('🔍 Checking article content...');
+
+    // Import the check function
+    const checkArticleContent = require('../scripts/check-article-content.js');
+
+    // Run the check
+    await checkArticleContent({ strapi });
+
+    console.log('✅ Article content check completed');
+  } catch (e) {
+    strapi.log.warn(`Article content check skipped: ${e.message}`);
+  }
+
   // Import v3 content (categories, articles, podcast titles) if enabled
   try {
     if (process.env.IMPORT_V3_CONTENT === 'true') {
@@ -1022,46 +1221,86 @@ module.exports = async ({ strapi }) => {
       const catNameToId = {};
       for (const c of allCats) catNameToId[String(c.name).trim().toLowerCase()] = c.id;
 
-      // 2) Articles
+      // 2) Articles from CSV
       try {
         const existingCount = await strapi.entityService.count('api::article.article');
-        if (existingCount === 0) {
-          const v3ArticlesEndpoint = process.env.V3_ENDPOINT_ARTICLES || 'articles';
-          const v3Articles = await fetchAll(v3ArticlesEndpoint);
-          let imported = 0;
-          for (const a of v3Articles) {
-            const title = getString(a, ['title', 'Title', 'name', 'Name']);
-            if (!title) continue;
-            const description = getString(a, ['description', 'Description', 'excerpt', 'Excerpt']);
-            const content = getString(a, ['content', 'Content', 'body', 'Body']);
-            const categoryLike = a.category || a.Category || null;
-            let categoryId = null;
-            if (categoryLike) {
-              if (typeof categoryLike === 'object') {
-                const catName = getString(categoryLike, ['name', 'Name', 'title', 'Title']);
-                if (catName) categoryId = catNameToId[catName.toLowerCase()] || null;
-              } else if (typeof categoryLike === 'string') {
-                categoryId = catNameToId[categoryLike.toLowerCase()] || null;
-              }
-            }
-            // Avoid duplicates by title
-            const dup = await strapi.entityService.findMany('api::article.article', { filters: { title }, limit: 1 });
-            if (dup && dup[0]) continue;
-            await strapi.entityService.create('api::article.article', {
-              data: {
-                title,
-                description,
-                content,
-                ...(categoryId ? { category: categoryId } : {}),
-                publishedAt: new Date().toISOString(),
-              },
+        console.log(`📊 Articles existing count: ${existingCount}`);
+
+        // Force create articles for debugging
+        console.log('🚀 Creating articles from CSV file (forced)...');
+
+        try {
+
+        // Read CSV file
+        const fs = require('fs');
+        const path = require('path');
+        const csvPath = path.join(__dirname, '..', 'cleanvoice_complete_blog_cleaned.csv');
+
+        const csvContent = fs.readFileSync(csvPath, 'utf8');
+        const lines = csvContent.split('\n').filter(Boolean).slice(1); // Skip header
+
+        console.log(`📊 Found ${lines.length} articles in CSV`);
+
+        // Get admin user
+        const adminUsers = await strapi.entityService.findMany('admin::user', { limit: 1 });
+        const adminUser = adminUsers[0];
+        if (!adminUser) {
+          throw new Error('No admin user found');
+        }
+
+        console.log(`Using admin user ID: ${adminUser.id}`);
+
+        let createdCount = 0;
+        const now = new Date().toISOString();
+
+        for (const line of lines) {
+          const [title, slug, image] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+
+          if (!title || !slug) continue;
+
+          try {
+            const articleData = {
+              document_id: `article-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              locale: 'en',
+              title: title,
+              slug: slug,
+              description: `Description for ${title}`,
+              content: `<p>Content for ${title}</p>`,
+              toc: false,
+              created_at: now,
+              updated_at: now,
+              published_at: now,
+              created_by_id: adminUser.id,
+              updated_by_id: adminUser.id
+            };
+
+            const article = await strapi.entityService.create('api::article.article', {
+              data: articleData
             });
-            imported++;
+
+            console.log(`✅ Created article: ${article.title} (ID: ${article.id})`);
+            createdCount++;
+
+          } catch (error) {
+            console.error(`❌ Error creating article "${title}":`, error.message);
           }
-          strapi.log.info(`Imported ${imported} v3 articles`);
+        }
+
+        // Verify final count
+        const finalArticles = await strapi.entityService.findMany('api::article.article', {
+          fields: ['id', 'title', 'slug'],
+          limit: 1000
+        });
+
+          console.log(`\n🎉 SUCCESS: Created ${createdCount} articles total`);
+          console.log(`📊 Verification: Found ${finalArticles.length} articles in Strapi content manager`);
+
+          strapi.log.info(`Created ${createdCount} articles from CSV`);
+        } catch (e) {
+          strapi.log.warn(`Articles creation skipped: ${e.message}`);
         }
       } catch (e) {
-        strapi.log.warn(`v3 articles import skipped: ${e.message}`);
+        strapi.log.warn(`Articles section skipped: ${e.message}`);
       }
 
       // 3) Podcast titles → api::podcast.podcast (Name)
