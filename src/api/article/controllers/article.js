@@ -80,7 +80,8 @@ module.exports = createCoreController('api::article.article', ({ strapi }) => ({
       populate: {
         category: true,
         image: true,
-        tags: true
+        tags: true,
+        seo: true
       }
     });
 
@@ -108,7 +109,8 @@ module.exports = createCoreController('api::article.article', ({ strapi }) => ({
         populate: {
           category: true,
           image: true,
-          tags: true
+          tags: true,
+          seo: true
         }
       });
       return { data: populated, meta: result.meta };
@@ -174,7 +176,8 @@ module.exports = createCoreController('api::article.article', ({ strapi }) => ({
         populate: {
           category: true,
           image: true,
-          tags: true
+          tags: true,
+          seo: true
         }
       });
       return { data: populated, meta: result.meta };
