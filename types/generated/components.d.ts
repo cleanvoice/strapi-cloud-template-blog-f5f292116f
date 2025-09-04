@@ -67,9 +67,32 @@ export interface SectionsAudioCarousel extends Struct.ComponentSchema {
     displayName: 'Audio Carousel';
   };
   attributes: {
-    audiocarouselTab: Schema.Attribute.JSON;
+    audiocarouselTab: Schema.Attribute.Component<
+      'sections.audio-carousel-tab',
+      true
+    >;
     SubTitle: Schema.Attribute.String;
     Title: Schema.Attribute.String;
+  };
+}
+
+export interface SectionsAudioCarouselTab extends Struct.ComponentSchema {
+  collectionName: 'components_sections_audio_carousel_tabs';
+  info: {
+    description: 'Individual tab component for Audio Carousel';
+    displayName: 'Audio Carousel Tab';
+  };
+  attributes: {
+    After_audio_url: Schema.Attribute.String & Schema.Attribute.Required;
+    Before_audio_url: Schema.Attribute.String & Schema.Attribute.Required;
+    Copyright: Schema.Attribute.Text;
+    CTAText: Schema.Attribute.String & Schema.Attribute.Required;
+    CTAUrl: Schema.Attribute.String & Schema.Attribute.Required;
+    Header: Schema.Attribute.String & Schema.Attribute.Required;
+    HeroImage: Schema.Attribute.Media<'images'>;
+    Subheader: Schema.Attribute.String & Schema.Attribute.Required;
+    tab_id: Schema.Attribute.String & Schema.Attribute.Required;
+    tabHeader: Schema.Attribute.String & Schema.Attribute.Required;
   };
 }
 
@@ -80,8 +103,11 @@ export interface SectionsAudioCarouselTwo extends Struct.ComponentSchema {
     displayName: 'Audio Carousel Two';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
-    tabs: Schema.Attribute.JSON;
+    audiocarouselTab: Schema.Attribute.Component<
+      'sections.audio-carousel-tab',
+      true
+    >;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -93,7 +119,7 @@ export interface SectionsAudioVisualizer extends Struct.ComponentSchema {
     displayName: 'Audio Visualizer';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -105,7 +131,7 @@ export interface SectionsAudioVolume extends Struct.ComponentSchema {
     displayName: 'Audio Volume';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -120,7 +146,7 @@ export interface SectionsBentoBox extends Struct.ComponentSchema {
     bento: Schema.Attribute.Component<'sections.bento-item', true>;
     CTA: Schema.Attribute.String;
     CTA_url: Schema.Attribute.String;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -154,7 +180,7 @@ export interface SectionsBigImageCta extends Struct.ComponentSchema {
     buttonLink: Schema.Attribute.String;
     buttonText: Schema.Attribute.String;
     image: Schema.Attribute.Media<'images'>;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     Title: Schema.Attribute.String;
   };
 }
@@ -173,7 +199,7 @@ export interface SectionsBigVideoCta extends Struct.ComponentSchema {
     description: Schema.Attribute.String;
     issilent: Schema.Attribute.String;
     mp4_url: Schema.Attribute.String;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     thumbnail_video_url: Schema.Attribute.String;
     title: Schema.Attribute.String;
     url: Schema.Attribute.String;
@@ -240,7 +266,7 @@ export interface SectionsCustomPlanCta extends Struct.ComponentSchema {
     freeTrialText: Schema.Attribute.String;
     priceUnit: Schema.Attribute.String;
     startingPrice: Schema.Attribute.String;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     tagline: Schema.Attribute.String;
     title: Schema.Attribute.String;
     viewPricingText: Schema.Attribute.String;
@@ -256,7 +282,9 @@ export interface SectionsDemoItem extends Struct.ComponentSchema {
   };
   attributes: {
     DemoData: Schema.Attribute.JSON;
-    DemoType: Schema.Attribute.String;
+    DemoType: Schema.Attribute.Enumeration<
+      ['bgNoise', 'beforeAfter', 'summary']
+    >;
     Icon: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
     Label: Schema.Attribute.String;
     Subtitle: Schema.Attribute.String;
@@ -341,7 +369,7 @@ export interface SectionsHero extends Struct.ComponentSchema {
   attributes: {
     ButtonText: Schema.Attribute.String;
     ButtonUrl: Schema.Attribute.String;
-    CTA_subtitle: Schema.Attribute.String;
+    CTA_subtitle: Schema.Attribute.Text;
     freeTrialText: Schema.Attribute.String;
     newSubTitle: Schema.Attribute.String;
     newTitle: Schema.Attribute.String;
@@ -358,7 +386,7 @@ export interface SectionsIntroOutro extends Struct.ComponentSchema {
     displayName: 'Intro Outro';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -382,7 +410,7 @@ export interface SectionsMergeAudio extends Struct.ComponentSchema {
     displayName: 'Merge Audio';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -394,7 +422,7 @@ export interface SectionsMicCheck extends Struct.ComponentSchema {
     displayName: 'Mic Check';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -435,7 +463,7 @@ export interface SectionsPricingNew extends Struct.ComponentSchema {
   attributes: {
     customPlan: Schema.Attribute.JSON;
     pricingOptions: Schema.Attribute.JSON;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -447,7 +475,7 @@ export interface SectionsQuoteMaker extends Struct.ComponentSchema {
     displayName: 'Quote Maker';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -460,7 +488,7 @@ export interface SectionsSingleTestimonial extends Struct.ComponentSchema {
   };
   attributes: {
     senja_url: Schema.Attribute.String;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -476,7 +504,7 @@ export interface SectionsStartupCta extends Struct.ComponentSchema {
     buttonText: Schema.Attribute.String;
     buttonUrl: Schema.Attribute.String;
     description: Schema.Attribute.String;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -506,7 +534,7 @@ export interface SectionsStickyFeatureTab extends Struct.ComponentSchema {
     icon_svg: Schema.Attribute.String;
     icon_url: Schema.Attribute.String;
     sections: Schema.Attribute.JSON;
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -558,7 +586,7 @@ export interface SectionsTrimAudio extends Struct.ComponentSchema {
     displayName: 'Trim Audio';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -587,7 +615,7 @@ export interface SectionsVideoToAudio extends Struct.ComponentSchema {
     displayName: 'Video To Audio';
   };
   attributes: {
-    subtitle: Schema.Attribute.String;
+    subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
 }
@@ -739,6 +767,7 @@ declare module '@strapi/strapi' {
       'sections.1-2-3': Sections123;
       'sections.1-2-3-item': Sections123Item;
       'sections.audio-carousel': SectionsAudioCarousel;
+      'sections.audio-carousel-tab': SectionsAudioCarouselTab;
       'sections.audio-carousel-two': SectionsAudioCarouselTwo;
       'sections.audio-visualizer': SectionsAudioVisualizer;
       'sections.audio-volume': SectionsAudioVolume;

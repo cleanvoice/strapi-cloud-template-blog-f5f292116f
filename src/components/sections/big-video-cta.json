@@ -26,7 +26,7 @@
       "required": false
     },
     "subtitle": {
-      "type": "string"
+      "type": "text"
     },
     "buttonText": {
       "type": "string"

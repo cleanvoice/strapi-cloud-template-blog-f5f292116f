@@ -30,7 +30,7 @@
       "required": false
     },
     "subtitle": {
-      "type": "string"
+      "type": "text"
     },
     "sections": {
       "type": "json"

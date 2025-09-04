@@ -13,7 +13,12 @@
       "type": "string"
     },
     "DemoType": {
-      "type": "string"
+      "type": "enumeration",
+      "enum": [
+        "bgNoise",
+        "beforeAfter",
+        "summary"
+      ]
     },
     "Icon": {
       "type": "media",

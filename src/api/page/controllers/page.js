@@ -320,8 +320,12 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
               "sections.podcast-search": { populate: "*" },
               "sections.topic-generator": { populate: "*" },
               "sections.title-generator": { populate: "*" },
-              "sections.audio-carousel": { populate: "*" },
-              "sections.audio-carousel-two": { populate: "*" },
+              "sections.audio-carousel": {
+                populate: { audiocarouselTab: { populate: { HeroImage: true } } },
+              },
+              "sections.audio-carousel-two": {
+                populate: { audiocarouselTab: { populate: { HeroImage: true } } },
+              },
               "sections.big-video-cta": { populate: "*" },
               "sections.feature-states": { populate: "*" },
               "sections.custom-plan-cta": { populate: "*" },
@@ -424,7 +428,9 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
             "sections.podcast-search": { populate: "*" },
             "sections.topic-generator": { populate: "*" },
             "sections.title-generator": { populate: "*" },
-            "sections.audio-carousel": { populate: "*" },
+            "sections.audio-carousel": {
+              populate: { audiocarouselTab: { populate: { HeroImage: true } } },
+            },
             "sections.audio-carousel-two": { populate: "*" },
             "sections.big-video-cta": { populate: "*" },
             "sections.feature-states": { populate: "*" },

@@ -10,7 +10,7 @@
       "type": "string"
     },
     "subtitle": {
-      "type": "string"
+      "type": "text"
     },
     "senja_url": {
       "type": "string"

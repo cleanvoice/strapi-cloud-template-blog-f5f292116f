@@ -10,10 +10,12 @@
       "type": "string"
     },
     "subtitle": {
-      "type": "string"
+      "type": "text"
     },
-    "tabs": {
-      "type": "json"
+    "audiocarouselTab": {
+      "type": "component",
+      "repeatable": true,
+      "component": "sections.audio-carousel-tab"
     }
   }
 }

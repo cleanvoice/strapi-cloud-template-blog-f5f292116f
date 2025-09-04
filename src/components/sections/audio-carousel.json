@@ -13,7 +13,9 @@
       "type": "string"
     },
     "audiocarouselTab": {
-      "type": "json"
+      "type": "component",
+      "repeatable": true,
+      "component": "sections.audio-carousel-tab"
     }
   }
 }
