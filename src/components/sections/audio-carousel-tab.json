@@ -6,46 +6,48 @@
   },
   "options": {},
   "attributes": {
-    "tabHeader": {
-      "type": "string",
-      "required": true
-    },
-    "Header": {
-      "type": "string",
-      "required": true
-    },
-    "Subheader": {
-      "type": "string",
-      "required": true
-    },
-    "CTAText": {
-      "type": "string",
-      "required": true
-    },
-    "CTAUrl": {
-      "type": "string",
-      "required": true
-    },
-    "Before_audio_url": {
-      "type": "string",
-      "required": true
-    },
-    "After_audio_url": {
-      "type": "string",
-      "required": true
-    },
-    "tab_id": {
-      "type": "string",
-      "required": true
-    },
-    "Copyright": {
-      "type": "text"
-    },
     "HeroImage": {
       "type": "media",
       "multiple": false,
       "required": false,
-      "allowedTypes": ["images"]
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "tabHeader": {
+      "type": "string",
+      "required": false
+    },
+    "After_audio_url": {
+      "type": "string",
+      "required": false
+    },
+    "tab_id": {
+      "type": "string",
+      "required": false
+    },
+    "Before_audio_url": {
+      "type": "string",
+      "required": false
+    },
+    "Subheader": {
+      "type": "string",
+      "required": false
+    },
+    "Header": {
+      "type": "string",
+      "required": false
+    },
+    "CTAText": {
+      "type": "string",
+      "required": false
+    },
+    "CTAUrl": {
+      "type": "string",
+      "required": false
+    },
+    "Copyright": {
+      "type": "text"
     }
   }
 }

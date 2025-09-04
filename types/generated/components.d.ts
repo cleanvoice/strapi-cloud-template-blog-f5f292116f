@@ -83,16 +83,16 @@ export interface SectionsAudioCarouselTab extends Struct.ComponentSchema {
     displayName: 'Audio Carousel Tab';
   };
   attributes: {
-    After_audio_url: Schema.Attribute.String & Schema.Attribute.Required;
-    Before_audio_url: Schema.Attribute.String & Schema.Attribute.Required;
+    After_audio_url: Schema.Attribute.String;
+    Before_audio_url: Schema.Attribute.String;
     Copyright: Schema.Attribute.Text;
-    CTAText: Schema.Attribute.String & Schema.Attribute.Required;
-    CTAUrl: Schema.Attribute.String & Schema.Attribute.Required;
-    Header: Schema.Attribute.String & Schema.Attribute.Required;
+    CTAText: Schema.Attribute.String;
+    CTAUrl: Schema.Attribute.String;
+    Header: Schema.Attribute.String;
     HeroImage: Schema.Attribute.Media<'images'>;
-    Subheader: Schema.Attribute.String & Schema.Attribute.Required;
-    tab_id: Schema.Attribute.String & Schema.Attribute.Required;
-    tabHeader: Schema.Attribute.String & Schema.Attribute.Required;
+    Subheader: Schema.Attribute.String;
+    tab_id: Schema.Attribute.String;
+    tabHeader: Schema.Attribute.String;
   };
 }
 
