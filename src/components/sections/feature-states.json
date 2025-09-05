@@ -10,10 +10,10 @@
       "type": "string"
     },
     "mainSubtitle": {
-      "type": "string"
+      "type": "text"
     },
     "description": {
-      "type": "string"
+      "type": "richtext"
     },
     "features": {
       "type": "json"

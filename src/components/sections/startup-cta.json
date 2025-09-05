@@ -13,10 +13,10 @@
       "type": "text"
     },
     "badgeText": {
-      "type": "string"
+      "type": "text"
     },
     "description": {
-      "type": "string"
+      "type": "richtext"
     },
     "buttonText": {
       "type": "string"

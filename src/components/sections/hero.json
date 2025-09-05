@@ -10,13 +10,13 @@
       "type": "string"
     },
     "SubTitle": {
-      "type": "string"
+      "type": "text"
     },
     "ButtonText": {
       "type": "string"
     },
     "newSubTitle": {
-      "type": "string"
+      "type": "text"
     },
     "freeTrialText": {
       "type": "string"

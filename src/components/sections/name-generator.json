@@ -7,10 +7,10 @@
   "options": {},
   "attributes": {
     "searchText": {
-      "type": "string"
+      "type": "text"
     },
     "placeholder": {
-      "type": "string"
+      "type": "text"
     }
   }
 }

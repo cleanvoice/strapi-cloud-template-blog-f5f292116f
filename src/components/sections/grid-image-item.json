@@ -17,7 +17,7 @@
       "required": false
     },
     "Text": {
-      "type": "string"
+      "type": "text"
     },
     "Link": {
       "type": "component",

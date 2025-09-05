@@ -30,7 +30,7 @@
       }
     },
     "description": {
-      "type": "string",
+      "type": "text",
       "maxLength": 500,
       "pluginOptions": {
         "i18n": {

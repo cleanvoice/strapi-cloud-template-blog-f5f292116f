@@ -7,7 +7,7 @@
   "attributes": {
     "url": { "type": "string" },
     "newTab": { "type": "boolean" },
-    "text": { "type": "string" }
+    "text": { "type": "text" }
   }
 }
 

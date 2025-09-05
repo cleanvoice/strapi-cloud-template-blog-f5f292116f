@@ -7,19 +7,19 @@
   "options": {},
   "attributes": {
     "placeholderText": {
-      "type": "string"
+      "type": "text"
     },
     "loadingText": {
-      "type": "string"
+      "type": "text"
     },
     "errorText": {
-      "type": "string"
+      "type": "text"
     },
     "path": {
       "type": "string"
     },
     "searchText": {
-      "type": "string"
+      "type": "text"
     }
   }
 }

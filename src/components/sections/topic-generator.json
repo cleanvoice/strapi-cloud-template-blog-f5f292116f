@@ -7,16 +7,16 @@
   "options": {},
   "attributes": {
     "placeholder": {
-      "type": "string"
+      "type": "text"
     },
     "searchText": {
-      "type": "string"
+      "type": "text"
     },
     "descriptionText": {
-      "type": "string"
+      "type": "text"
     },
     "loadingText": {
-      "type": "string"
+      "type": "text"
     }
   }
 }

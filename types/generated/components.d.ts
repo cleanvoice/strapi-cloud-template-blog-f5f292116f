@@ -9,7 +9,7 @@ export interface ScoringFactors extends Struct.ComponentSchema {
   attributes: {
     factor: Schema.Attribute.String;
     one_points_text: Schema.Attribute.String;
-    one_tip_description: Schema.Attribute.String;
+    one_tip_description: Schema.Attribute.Text;
     one_tip_title: Schema.Attribute.String;
     three_points_text: Schema.Attribute.String;
     tree_points_text: Schema.Attribute.String;
@@ -26,9 +26,9 @@ export interface ScoringGradeText extends Struct.ComponentSchema {
     displayName: 'Grade Text';
   };
   attributes: {
-    description_text_rank: Schema.Attribute.String;
+    description_text_rank: Schema.Attribute.Text;
     rank: Schema.Attribute.String;
-    short_text_rank: Schema.Attribute.String;
+    short_text_rank: Schema.Attribute.Text;
   };
 }
 
@@ -325,9 +325,9 @@ export interface SectionsFeatureStates extends Struct.ComponentSchema {
     displayName: 'Feature States';
   };
   attributes: {
-    description: Schema.Attribute.String;
+    description: Schema.Attribute.RichText;
     features: Schema.Attribute.JSON;
-    mainSubtitle: Schema.Attribute.String;
+    mainSubtitle: Schema.Attribute.Text;
     mainTitle: Schema.Attribute.String;
     states: Schema.Attribute.JSON;
   };
@@ -355,7 +355,7 @@ export interface SectionsGridImageItem extends Struct.ComponentSchema {
     Link: Schema.Attribute.Component<'shared.link', false>;
     Media: Schema.Attribute.Media<'images'>;
     mediaUrl: Schema.Attribute.String;
-    Text: Schema.Attribute.String;
+    Text: Schema.Attribute.Text;
   };
 }
 
@@ -370,10 +370,10 @@ export interface SectionsHero extends Struct.ComponentSchema {
     ButtonUrl: Schema.Attribute.String;
     CTA_subtitle: Schema.Attribute.Text;
     freeTrialText: Schema.Attribute.String;
-    newSubTitle: Schema.Attribute.String;
+    newSubTitle: Schema.Attribute.Text;
     newTitle: Schema.Attribute.String;
     senja_url: Schema.Attribute.String;
-    SubTitle: Schema.Attribute.String;
+    SubTitle: Schema.Attribute.Text;
     Title: Schema.Attribute.String;
   };
 }
@@ -433,8 +433,8 @@ export interface SectionsNameGenerator extends Struct.ComponentSchema {
     displayName: 'Name Generator';
   };
   attributes: {
-    placeholder: Schema.Attribute.String;
-    searchText: Schema.Attribute.String;
+    placeholder: Schema.Attribute.Text;
+    searchText: Schema.Attribute.Text;
   };
 }
 
@@ -445,11 +445,11 @@ export interface SectionsPodcastSearch extends Struct.ComponentSchema {
     displayName: 'Podcast Search';
   };
   attributes: {
-    errorText: Schema.Attribute.String;
-    loadingText: Schema.Attribute.String;
+    errorText: Schema.Attribute.Text;
+    loadingText: Schema.Attribute.Text;
     path: Schema.Attribute.String;
-    placeholderText: Schema.Attribute.String;
-    searchText: Schema.Attribute.String;
+    placeholderText: Schema.Attribute.Text;
+    searchText: Schema.Attribute.Text;
   };
 }
 
@@ -499,10 +499,10 @@ export interface SectionsStartupCta extends Struct.ComponentSchema {
     displayName: 'Startup Cta';
   };
   attributes: {
-    badgeText: Schema.Attribute.String;
+    badgeText: Schema.Attribute.Text;
     buttonText: Schema.Attribute.String;
     buttonUrl: Schema.Attribute.String;
-    description: Schema.Attribute.String;
+    description: Schema.Attribute.RichText;
     subtitle: Schema.Attribute.Text;
     title: Schema.Attribute.String;
   };
@@ -528,8 +528,8 @@ export interface SectionsStickyFeatureTab extends Struct.ComponentSchema {
   };
   attributes: {
     CTA: Schema.Attribute.String;
-    CTA_text: Schema.Attribute.String;
-    description: Schema.Attribute.String;
+    CTA_text: Schema.Attribute.Text;
+    description: Schema.Attribute.RichText;
     icon_svg: Schema.Attribute.String;
     icon_url: Schema.Attribute.String;
     sections: Schema.Attribute.JSON;
@@ -557,10 +557,10 @@ export interface SectionsTitleGenerator extends Struct.ComponentSchema {
     displayName: 'Title Generator';
   };
   attributes: {
-    descriptionText: Schema.Attribute.String;
-    loadingText: Schema.Attribute.String;
-    placeholder: Schema.Attribute.String;
-    searchText: Schema.Attribute.String;
+    descriptionText: Schema.Attribute.Text;
+    loadingText: Schema.Attribute.Text;
+    placeholder: Schema.Attribute.Text;
+    searchText: Schema.Attribute.Text;
   };
 }
 
@@ -571,10 +571,10 @@ export interface SectionsTopicGenerator extends Struct.ComponentSchema {
     displayName: 'Topic Generator';
   };
   attributes: {
-    descriptionText: Schema.Attribute.String;
-    loadingText: Schema.Attribute.String;
-    placeholder: Schema.Attribute.String;
-    searchText: Schema.Attribute.String;
+    descriptionText: Schema.Attribute.Text;
+    loadingText: Schema.Attribute.Text;
+    placeholder: Schema.Attribute.Text;
+    searchText: Schema.Attribute.Text;
   };
 }
 
@@ -662,7 +662,7 @@ export interface SharedLink extends Struct.ComponentSchema {
   };
   attributes: {
     newTab: Schema.Attribute.Boolean;
-    text: Schema.Attribute.String;
+    text: Schema.Attribute.Text;
     url: Schema.Attribute.String;
   };
 }

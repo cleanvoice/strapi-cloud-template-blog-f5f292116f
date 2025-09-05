@@ -7,10 +7,10 @@
   "options": {},
   "attributes": {
     "short_text_rank": {
-      "type": "string"
+      "type": "text"
     },
     "description_text_rank": {
-      "type": "string"
+      "type": "text"
     },
     "rank": {
       "type": "string"

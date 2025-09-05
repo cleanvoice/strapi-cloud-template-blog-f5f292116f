@@ -29,7 +29,7 @@
       "type": "text"
     },
     "one_tip_description": {
-      "type": "string"
+      "type": "text"
     },
     "factor": {
       "type": "string"
