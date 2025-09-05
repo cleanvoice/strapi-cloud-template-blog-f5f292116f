@@ -10,7 +10,7 @@
       "type": "string"
     },
     "Subtitle": {
-      "type": "string"
+      "type": "richtext"
     },
     "DemoType": {
       "type": "enumeration",

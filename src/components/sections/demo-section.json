@@ -6,10 +6,6 @@
   },
   "options": {},
   "attributes": {
-    "title": {
-      "type": "string",
-      "required": false
-    },
     "ctaText": {
       "type": "string"
     },

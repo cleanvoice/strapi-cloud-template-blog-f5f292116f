@@ -10,7 +10,7 @@
       "type": "string"
     },
     "BodyText": {
-      "type": "string"
+      "type": "richtext"
     },
     "side": {
       "type": "boolean"
@@ -23,7 +23,8 @@
       "required": false
     },
     "link": {
-      "type": "json"
+      "type": "component",
+      "component": "shared.link"
     },
     "Media": {
       "type": "media",

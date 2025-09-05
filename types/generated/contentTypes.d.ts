@@ -548,7 +548,7 @@ export interface ApiBlogglobalBlogglobal extends Struct.SingleTypeSchema {
         };
       }>;
     publishedAt: Schema.Attribute.DateTime;
-    subTitle: Schema.Attribute.String &
+    subTitle: Schema.Attribute.Text &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true;

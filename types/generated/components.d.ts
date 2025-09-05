@@ -160,12 +160,12 @@ export interface SectionsBentoItem extends Struct.ComponentSchema {
   attributes: {
     ButtonLink: Schema.Attribute.String;
     ButtonText: Schema.Attribute.String;
-    Content: Schema.Attribute.Text;
+    Content: Schema.Attribute.RichText;
     Icon: Schema.Attribute.Media<'images' | 'videos' | 'files'>;
-    ImagePosition: Schema.Attribute.String;
+    ImagePosition: Schema.Attribute.Enumeration<['left', 'right', 'full']>;
     Link: Schema.Attribute.Component<'shared.link', false>;
     Media: Schema.Attribute.Media<'images' | 'videos'>;
-    Size: Schema.Attribute.String;
+    Size: Schema.Attribute.Enumeration<['half', 'full']>;
     Title: Schema.Attribute.String;
   };
 }
@@ -287,7 +287,7 @@ export interface SectionsDemoItem extends Struct.ComponentSchema {
     >;
     Icon: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
     Label: Schema.Attribute.String;
-    Subtitle: Schema.Attribute.String;
+    Subtitle: Schema.Attribute.RichText;
     Title: Schema.Attribute.String;
   };
 }
@@ -303,7 +303,6 @@ export interface SectionsDemoSection extends Struct.ComponentSchema {
     ctaSubtext: Schema.Attribute.String;
     ctaText: Schema.Attribute.String;
     demo: Schema.Attribute.Component<'sections.demo-item', true>;
-    title: Schema.Attribute.String;
   };
 }
 
@@ -598,9 +597,9 @@ export interface SectionsTwoColFeature extends Struct.ComponentSchema {
     displayName: 'Two Col Feature';
   };
   attributes: {
-    BodyText: Schema.Attribute.String;
+    BodyText: Schema.Attribute.RichText;
     Header: Schema.Attribute.String;
-    link: Schema.Attribute.JSON;
+    link: Schema.Attribute.Component<'shared.link', false>;
     LottiePath: Schema.Attribute.String;
     Media: Schema.Attribute.Media<'images' | 'files' | 'videos'>;
     side: Schema.Attribute.Boolean;

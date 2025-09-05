@@ -10,7 +10,7 @@
       "type": "string"
     },
     "Content": {
-      "type": "text"
+      "type": "richtext"
     },
     "Media": {
       "type": "media",
@@ -43,10 +43,19 @@
       "type": "string"
     },
     "Size": {
-      "type": "string"
+      "type": "enumeration",
+      "enum": [
+        "half",
+        "full"
+      ]
     },
     "ImagePosition": {
-      "type": "string"
+      "type": "enumeration",
+      "enum": [
+        "left",
+        "right",
+        "full"
+      ]
     }
   }
 }
