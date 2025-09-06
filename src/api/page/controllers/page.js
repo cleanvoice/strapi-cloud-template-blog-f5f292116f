@@ -311,7 +311,7 @@ module.exports = createCoreController("api::page.page", ({ strapi }) => ({
               "sections.grid-image": {
                 populate: {
                   ImageGrid: {
-                    populate: { Link: true },
+                    populate: { Link: true, Media: true },
                   },
                 },
               },
